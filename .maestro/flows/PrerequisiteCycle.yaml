@@ -1,0 +1,16 @@
+#flow: PrerequisiteCycle
+#intent:
+# UCMP 6030 requires UCMP 6040, which requires UCMP 6030 again (a real cycle in the data).
+# Expanding it must mark the repeat as a loop instead of recursing forever.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- tapOn: '.*Search code or title.*'
+- inputText: 'ucmp6030'
+- tapOn:
+    id: 'course-row-UCMP 6030'
+- tapOn: 'Show prerequisites of UCMP 6040'
+- assertVisible: 'UCMP 6030, .*Loops back'
+- assertNotVisible: 'Show prerequisites of UCMP 6030'
+- assertVisible: '2 courses across 2 levels'

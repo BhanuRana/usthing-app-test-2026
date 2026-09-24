@@ -117,6 +117,7 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
+          testID="search-input"
           clearButtonMode="never"
           accessibilityLabel={translate("explore:searchPlaceholder")}
           LeftAccessory={SearchIcon}
@@ -244,4 +245,7 @@ const $lastChipRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderBottomColor: colors.separator,
 })
 
-const $empty: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingTop: spacing.xl })
+const $empty: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingTop: spacing.xl,
+  paddingHorizontal: spacing.lg,
+})

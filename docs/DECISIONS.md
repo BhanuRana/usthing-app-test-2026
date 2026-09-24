@@ -59,3 +59,25 @@ Short, dated records of the choices that shaped this app: what was decided, the 
 
 **Decision:** Precompute lower-case keys once, then scan all ~4,000 courses on each (deferred) keystroke, ranking: exact code › code prefix › title prefix › title word › title substring › all words in any order. Codes match regardless of spacing/case (`comp1021`).
 **Why:** A scan of 4k short strings takes about 1–2 ms. An inverted index or fuzzy library (Fuse.js) would add size and complexity with no noticeable speed gain at this scale.
+
+### D7 · State: component state + MMKV hooks, no state library (2026-09-24)
+
+**Decision:** Search text, department and UG/PG filters are local to the Explore screen. The selected semester and starred courses persist via `react-native-mmkv` hooks (`useMMKVString` / `useMMKVObject`), which the template already uses for its theme setting.
+**Why:** The catalogue is static and synchronous, so there's no server state to cache. The only shared state is two small preferences, and MMKV hooks subscribe to their key, so every screen stays in sync with no provider. Redux/MobX/Zustand would add a layer without solving a real problem here.
+**Detail:** The term is stored by *term code* (`"2610"`), not array position, so it stays valid if the dataset is regenerated with more terms. Starred courses are stored as codes, and anything no longer in the catalogue is skipped.
+
+### D8 · Lists: FlatList with fixed row height (2026-09-24)
+
+**Decision:** Plain `FlatList` + `getItemLayout` (76 pt rows), `React.memo` rows with a stable `onPress`, a tuned `windowSize`/batch size, and `useDeferredValue` on the search text.
+**Why:** With fixed heights, FlatList never measures rows, and deferring the query keeps the text input responsive while the list catches up. FlashList would help with variable-height or much larger lists. At ~4k fixed-height rows it's another native dependency for little gain.
+
+### D9 · Bundle size vs. startup (2026-09-24)
+
+**Observation:** The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the 129 detail chunks.
+**Why that's acceptable:** Hermes memory-maps bytecode and runs a module's code only when it's first `require`d, so chunks you never open cost disk space, not startup time or memory. Startup loads only the index (and the prerequisite graph on the first detail view).
+**If it mattered more:** ship the chunks as assets and read them with `expo-file-system`, or put them in SQLite. That's a small change behind `getCourseVersions()`.
+
+### D10 · Icons: @expo/vector-icons (2026-09-24)
+
+**Decision:** Use Ionicons from `@expo/vector-icons` for search, star, chevrons and cycle markers. The template's PNG `Icon` still backs its own components (e.g. the header back button).
+**Why:** The template's PNG set has no search/star/tree icons, and `@expo/vector-icons` already ships with Expo.

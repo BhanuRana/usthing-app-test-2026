@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useMemo, useState } from "react"
-import { Pressable, TextStyle, View, ViewStyle } from "react-native"
+import { Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 
 import { Chip } from "@/components/course/Chip"
@@ -96,138 +96,144 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
     requestedTerm !== undefined && requestedTerm !== term && !course.terms.includes(requestedTerm)
 
   return (
-    <Screen preset="scroll" contentContainerStyle={themed($content)}>
+    // Header stays fixed; only the content scrolls, so Back and Star are always reachable.
+    <Screen preset="fixed" contentContainerStyle={$flex}>
       {header}
-
-      <View style={themed($titleBlock)}>
-        <Text preset="subheading" text={version.title} />
-        <Text
-          size="xs"
-          style={themed($dim)}
-          text={`${version.credits} credits · ${course.career === "UG" ? "Undergraduate" : "Postgraduate"} · ${course.prefix}`}
-        />
-      </View>
-
-      <Section title={translate("course:offeredIn")}>
-        <View style={$wrap}>
-          {terms.map((t, i) => {
-            const offered = course.terms.includes(i)
-            return (
-              <Chip
-                key={t.code}
-                label={t.name}
-                selected={term === i}
-                muted={!offered}
-                disabled={!offered}
-                onPress={() => setTerm(i)}
-              />
-            )
-          })}
-        </View>
-        {notOffered && (
-          <Text
-            size="xxs"
-            style={themed($dim)}
-            text={translate("course:notOfferedIn", {
-              term: terms[requestedTerm].name,
-              shown: terms[term!].name,
-            })}
-          />
-        )}
-      </Section>
-
-      <Section title={translate("course:prerequisites")}>
-        {tree ? (
-          <>
-            <PrereqTree node={tree} rootCode={code} onOpenCourse={openCourse} />
-            <View style={themed($raw)}>
-              <Text size="xxs" weight="bold" style={themed($dim)} tx="course:asWritten" />
-              <LinkedCodesText text={version.prerequisite} onPressCode={openCourse} />
-            </View>
-          </>
-        ) : (
-          <Text size="xs" style={themed($dim)} tx="course:noPrerequisites" />
-        )}
-      </Section>
-
-      {chainLevels.length > 0 && (
-        <Section
-          title={translate("course:fullChain")}
-          subtitle={translate("course:fullChainSummary", {
-            count: chainLevels.flat().length,
-            levels: chainLevels.length,
-          })}
-        >
-          {chainLevels.map((level, i) => (
-            <View key={i} style={themed($level)}>
-              <Text
-                size="xxs"
-                weight="bold"
-                style={themed($levelLabel)}
-                text={translate("course:level", { level: i + 1 })}
-              />
-              <View style={[$wrap, $flex]}>
-                {level.map((c) => (
-                  <CodeChip key={c} code={c} onPress={openCourse} />
-                ))}
-              </View>
-            </View>
-          ))}
-        </Section>
-      )}
-
-      <Section
-        title={translate("course:unlocks")}
-        subtitle={unlocks.length ? translate("course:unlocksHint", { code }) : undefined}
+      <ScrollView
+        style={$flex}
+        contentContainerStyle={themed($content)}
+        testID="course-detail-scroll"
       >
-        {unlocks.length ? (
+        <View style={themed($titleBlock)}>
+          <Text preset="subheading" text={version.title} />
+          <Text
+            size="xs"
+            style={themed($dim)}
+            text={`${version.credits} credits · ${course.career === "UG" ? "Undergraduate" : "Postgraduate"} · ${course.prefix}`}
+          />
+        </View>
+
+        <Section title={translate("course:offeredIn")}>
           <View style={$wrap}>
-            {unlocks.map((c) => (
-              <CodeChip key={c} code={c} onPress={openCourse} />
-            ))}
+            {terms.map((t, i) => {
+              const offered = course.terms.includes(i)
+              return (
+                <Chip
+                  key={t.code}
+                  label={t.name}
+                  selected={term === i}
+                  muted={!offered}
+                  disabled={!offered}
+                  onPress={() => setTerm(i)}
+                />
+              )
+            })}
           </View>
-        ) : (
-          <Text size="xs" style={themed($dim)} text={translate("course:unlocksNone", { code })} />
+          {notOffered && (
+            <Text
+              size="xxs"
+              style={themed($dim)}
+              text={translate("course:notOfferedIn", {
+                term: terms[requestedTerm].name,
+                shown: terms[term!].name,
+              })}
+            />
+          )}
+        </Section>
+
+        <Section title={translate("course:prerequisites")}>
+          {tree ? (
+            <>
+              <PrereqTree node={tree} rootCode={code} onOpenCourse={openCourse} />
+              <View style={themed($raw)}>
+                <Text size="xxs" weight="bold" style={themed($dim)} tx="course:asWritten" />
+                <LinkedCodesText text={version.prerequisite} onPressCode={openCourse} />
+              </View>
+            </>
+          ) : (
+            <Text size="xs" style={themed($dim)} tx="course:noPrerequisites" />
+          )}
+        </Section>
+
+        {chainLevels.length > 0 && (
+          <Section
+            title={translate("course:fullChain")}
+            subtitle={translate("course:fullChainSummary", {
+              count: chainLevels.flat().length,
+              levels: chainLevels.length,
+            })}
+          >
+            {chainLevels.map((level, i) => (
+              <View key={i} style={themed($level)}>
+                <Text
+                  size="xxs"
+                  weight="bold"
+                  style={themed($levelLabel)}
+                  text={translate("course:level", { level: i + 1 })}
+                />
+                <View style={[$wrap, $flex]}>
+                  {level.map((c) => (
+                    <CodeChip key={c} code={c} onPress={openCourse} />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </Section>
         )}
-      </Section>
 
-      {!!version.description && (
-        <Section title={translate("course:description")}>
-          <Text size="xs" text={version.description} />
+        <Section
+          title={translate("course:unlocks")}
+          subtitle={unlocks.length ? translate("course:unlocksHint", { code }) : undefined}
+        >
+          {unlocks.length ? (
+            <View style={$wrap}>
+              {unlocks.map((c) => (
+                <CodeChip key={c} code={c} onPress={openCourse} />
+              ))}
+            </View>
+          ) : (
+            <Text size="xs" style={themed($dim)} text={translate("course:unlocksNone", { code })} />
+          )}
         </Section>
-      )}
 
-      {(
-        [
-          ["course:corequisite", version.corequisite],
-          ["course:exclusion", version.exclusion],
-          ["course:colist", version.colist],
-          ["course:previous", version.previous],
-        ] as const
-      ).map(
-        ([label, value]) =>
-          !!value && (
-            <Section key={label} title={translate(label)}>
-              <LinkedCodesText text={value} onPressCode={openCourse} />
-            </Section>
-          ),
-      )}
+        {!!version.description && (
+          <Section title={translate("course:description")}>
+            <Text size="xs" text={version.description} />
+          </Section>
+        )}
 
-      {version.attributes.length > 0 && (
-        <Section title={translate("course:attributes")}>
-          {version.attributes.map((a) => (
-            <Text key={a.label} size="xs" text={`• ${a.description}`} />
-          ))}
-        </Section>
-      )}
+        {(
+          [
+            ["course:corequisite", version.corequisite],
+            ["course:exclusion", version.exclusion],
+            ["course:colist", version.colist],
+            ["course:previous", version.previous],
+          ] as const
+        ).map(
+          ([label, value]) =>
+            !!value && (
+              <Section key={label} title={translate(label)}>
+                <LinkedCodesText text={value} onPressCode={openCourse} />
+              </Section>
+            ),
+        )}
 
-      {version.cilos.length > 0 && (
-        <Section title={translate("course:cilos")}>
-          {version.cilos.map((c, i) => (
-            <Text key={i} size="xs" style={$cilo} text={`${i + 1}. ${c}`} />
-          ))}
-        </Section>
-      )}
+        {version.attributes.length > 0 && (
+          <Section title={translate("course:attributes")}>
+            {version.attributes.map((a) => (
+              <Text key={a.label} size="xs" text={`• ${a.description}`} />
+            ))}
+          </Section>
+        )}
+
+        {version.cilos.length > 0 && (
+          <Section title={translate("course:cilos")}>
+            {version.cilos.map((c, i) => (
+              <Text key={i} size="xs" style={$cilo} text={`${i + 1}. ${c}`} />
+            ))}
+          </Section>
+        )}
+      </ScrollView>
     </Screen>
   )
 }
@@ -294,7 +300,7 @@ const $raw: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginTop: spacing.sm,
   padding: spacing.sm,
   borderRadius: 8,
-  backgroundColor: colors.palette.overlay20,
+  backgroundColor: colors.palette.neutral300,
   gap: 2,
 })
 

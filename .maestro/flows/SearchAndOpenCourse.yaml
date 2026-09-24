@@ -1,0 +1,29 @@
+#flow: SearchAndOpenCourse
+#intent:
+# Search by code (spacing/case-insensitive) and by title, open a course, and follow a
+# prerequisite link to another course's page.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp3711'
+- assertVisible:
+    id: 'course-row-COMP 3711'
+- eraseText: 20
+- inputText: 'operating systems'
+- assertVisible:
+    id: 'course-row-COMP 3511'
+- eraseText: 20
+- inputText: 'COMP 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- assertVisible: 'Design and Analysis of Algorithms'
+- assertVisible: 'ALL OF'
+# Expand one level, then open a prerequisite's own page.
+- tapOn: 'Show prerequisites of COMP 2011'
+- assertVisible: 'Show prerequisites of COMP 1028'
+- tapOn: 'COMP 2011.*'
+- assertVisible: 'Programming with C\+\+'
+- tapOn: 'Back'
+- assertVisible: 'Design and Analysis of Algorithms'

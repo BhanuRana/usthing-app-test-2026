@@ -77,6 +77,7 @@ export function DepartmentPicker(props: DepartmentPickerProps) {
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
                 onPress={() => choose(item?.prefix)}
+                testID={`department-${item?.prefix ?? "all"}`}
                 style={({ pressed }) => [themed($row), pressed && { opacity: 0.6 }]}
               >
                 <Text

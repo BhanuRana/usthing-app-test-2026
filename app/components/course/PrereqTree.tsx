@@ -121,6 +121,14 @@ function CourseNode({ code, note, ancestors, onOpenCourse }: CourseNodeProps) {
 
         <Pressable
           accessibilityRole={course ? "link" : "text"}
+          accessibilityLabel={[
+            code,
+            course?.title,
+            note,
+            state !== "expandable" ? badgeText(state) : undefined,
+          ]
+            .filter(Boolean)
+            .join(", ")}
           disabled={!course}
           onPress={() => onOpenCourse(code)}
           style={({ pressed }) => [$courseText, pressed && { opacity: 0.6 }]}

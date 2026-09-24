@@ -263,6 +263,9 @@ function HeaderAction(props: HeaderActionProps) {
         icon={icon}
         color={iconColor}
         onPress={onPress}
+        // Icon-only actions need a spoken label for VoiceOver/TalkBack (and UI tests).
+        accessibilityRole="button"
+        accessibilityLabel={icon === "back" ? translate("common:back") : icon}
         containerStyle={themed([$actionIconContainer, { backgroundColor }])}
         style={isRTL ? { transform: [{ rotate: "180deg" }] } : {}}
       />

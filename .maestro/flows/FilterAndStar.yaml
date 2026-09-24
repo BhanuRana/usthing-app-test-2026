@@ -1,0 +1,29 @@
+#flow: FilterAndStar
+#intent:
+# Filter by department + career, star a course, and find it in the Starred tab.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- tapOn: 'All terms'
+- tapOn: 'All departments'
+- tapOn: '.*Filter departments.*'
+- inputText: 'COMP'
+- tapOn:
+    id: 'department-COMP'
+- tapOn: 'UG'
+- assertVisible: 'Clear filters'
+- assertNotVisible:
+    id: 'course-row-ACCT 1010'
+- tapOn:
+    id: 'course-row-COMP 1021'
+- tapOn: 'Star course'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+- tapOn: 'Starred.*'
+- assertVisible:
+    id: 'course-row-COMP 1021'
+- tapOn: 'Explore.*'
+- tapOn: '.*Search code or title.*'
+- inputText: 'zzqqx'
+- assertVisible: 'No matching courses'
