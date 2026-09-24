@@ -81,3 +81,28 @@ Short, dated records of the choices that shaped this app: what was decided, the 
 
 **Decision:** Use Ionicons from `@expo/vector-icons` for search, star, chevrons and cycle markers. The template's PNG `Icon` still backs its own components (e.g. the header back button).
 **Why:** The template's PNG set has no search/star/tree icons, and `@expo/vector-icons` already ships with Expo.
+
+### D11 · Completed courses and three-valued eligibility (2026-09-24)
+
+**Decision:** Users can mark courses as completed. A course's prerequisite tree is then evaluated as met / unmet / **unknown**:
+- AND is unmet if any child is unmet;
+- OR is met if any child is met;
+- free text ("Level 3 in HKDSE Physics") is unknown.
+
+The detail screen says "You meet the prerequisites", "Still needed: …", or "can't verify". Explore gains an "Unlocked for me" filter.
+**Why three values:** Treating text as met would tell a student they can take a course they can't. Treating it as unmet would hide courses they can take. "Unknown" is the honest answer and keeps the logic simple (Kleene logic).
+**Why only direct prerequisites:** Having completed a course is a fact, and re-deriving it from *its* prerequisites would be wrong (students get waivers, and prerequisites change over time). It also means evaluation never crosses courses, so it can't loop, and all 4,030 courses evaluate in under 1 ms.
+**Why this feature over others:** It's on the brief's optional list, and it turns the prerequisite data into an answer to the question students actually have ("what can I take next?"). It also reuses the parsed trees rather than adding a new data path. Rejected for scope: graph visualisation and fuzzy search, both larger and lower value.
+
+### D12 · Fixes from the simulator QA pass (2026-09-24)
+
+I drove every screen with Maestro in light and dark mode, and fixed:
+- The detail header scrolled away with the content. It's now fixed: Back and Star are always reachable.
+- Two-line titles clipped in fixed-height rows. Titles are now one line with the full title in the accessibility label, and font scaling is capped, so the fixed row height (needed for `getItemLayout`) always holds.
+- Icon-only buttons, filter chips and tree nodes lacked spoken labels. Each now announces its code, title, and state (completed, loops back, no prerequisites).
+- Overlay colours vanished in dark mode. Replaced them with theme tokens.
+
+### D13 · End-to-end tests with Maestro (2026-09-24)
+
+**Decision:** Re-enable the template's Maestro setup with four flows covering the brief's core paths: search/open/follow, the real prerequisite cycle, filters and starring, completion and "Unlocked for me".
+**Why:** The unit tests prove the algorithms. These flows prove the screens wire them up correctly, and they caught real issues during QA. The template already shipped Maestro support, so this adds no new tooling.

@@ -1,5 +1,5 @@
 {
-  "name": "AppTechTest2627",
+  "name": "HKUST Courses",
   "slug": "AppTechTest2627",
   "scheme": "apptechtest2627",
   "version": "1.0.0",
@@ -40,9 +40,9 @@
       "expo-splash-screen",
       {
         "image": "./assets/images/app-icon-android-adaptive-foreground.png",
-        "imageWidth": 300,
+        "imageWidth": 200,
         "resizeMode": "contain",
-        "backgroundColor": "#191015"
+        "backgroundColor": "#C76542"
       }
     ],
     [

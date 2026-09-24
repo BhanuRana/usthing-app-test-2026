@@ -32,3 +32,20 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 - Preferences (starred courses, selected term) via MMKV hooks.
 - Fixed the template's existing type error in `navigationUtilities.ts`.
 - Production iOS export: 9.5 MB Hermes bytecode bundle.
+
+**4 · QA on the simulator**
+- First native build blocked by the Mac, not the app: the simulator's first boot compiles Metal shaders while Spotlight indexed the new 8.5 GB runtime (load average ~320). A clean reboot of the simulator fixed it.
+- Metro had been started with `CI=1`, which disables file watching, so early edits never reached the app. Restarted it normally.
+- Installed Maestro and drove every screen: found and fixed the scrolling header, clipped rows, missing accessibility labels and dark-mode contrast (D12).
+- Wrote 3 Maestro flows, all passing from a clean state.
+
+**5 · Completed courses** (D11)
+- `evaluate.ts` with three-valued logic, plus `missingRequirements()` for a readable "Still needed" list. 6 unit tests.
+- Detail screen: completed toggle, eligibility banner, ticks in the tree, "MET ✓" on satisfied groups, completed courses highlighted in the full chain.
+- Explore: "Unlocked for me". The Starred tab became My Courses (Starred + Completed).
+- 4th Maestro flow; 43 Jest tests.
+
+**6 · Polish**
+- App icon and splash: a small prerequisite graph in the app's accent colour, replacing the Ignite branding. The display name is "HKUST Courses".
+- `yarn bench`: every interaction is under 1 ms in Node; parsing the raw dataset would cost ~100 ms at startup.
+- README covering every section the brief requires.
