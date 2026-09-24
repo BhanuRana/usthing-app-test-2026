@@ -30,7 +30,7 @@ A React Native + Expo app for browsing HKUST courses and understanding their pre
 
 ## Setup and running
 
-**Requirements:** Node ≥ 20, Yarn 1 (pinned via `packageManager`; `corepack enable` picks it up), Xcode with an iOS simulator (or Android Studio with an emulator).
+**Requirements:** Node ≥ 20, Yarn 1 (pinned via `packageManager`; `corepack enable` picks it up), Xcode with an iOS simulator, or, for Android, the Android SDK with an emulator and **JDK 17** (the JDK React Native's Android build targets; point `JAVA_HOME` at it).
 
 ```bash
 git clone https://github.com/BhanuRana/usthing-app-test-2026.git
@@ -64,7 +64,7 @@ maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 4 en
 | Platform | Build | Result |
 |---|---|---|
 | iOS 26.5 simulator, iPhone 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features, light and dark mode; 4/4 Maestro E2E flows pass |
-| Android | Not tested | Nothing in the code is iOS-specific (template components, React Navigation, MMKV), but I haven't run it on Android |
+| Android 16 (API 36) emulator, Pixel 8 | Debug (dev client) and Release APK | All features, light and dark mode, hardware back button; 4/4 Maestro E2E flows pass on the Release build |
 
 ---
 
@@ -166,7 +166,7 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 - **"Leads to" spans all terms.** A course that listed this one as a prerequisite in any term is included.
 - **Eligibility only checks course prerequisites.** Co-requisites, exclusions, grade conditions ("Grade A- or above") and non-course requirements aren't enforced. Grade notes are shown, and text requirements make the result "can't verify" rather than a guess.
 - **Section data (quota, enrolment, waitlist) isn't shown**, per the 2026-09-24 brief update. The dataset doesn't include it.
-- **Not tested on Android** (see above).
+- **Android was tested on an emulator only**, not a physical device. The same goes for iOS (simulator only).
 
 ## Documentation
 

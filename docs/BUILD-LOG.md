@@ -53,3 +53,12 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 **7 · Submission checks**
 - Fresh `git clone` from GitHub → `yarn install --frozen-lockfile` → compile ✓ lint ✓ 43/43 tests ✓ → `yarn data` regenerates byte-identical output (0 files changed) ✓ → native Release build from scratch ✓ → 4/4 Maestro flows ✓.
 - Final code review found one edge case: "Unlocked for me" stayed active, invisibly, after un-completing every course. Fixed.
+
+**8 · Android**
+- Toolchain: JDK 17 (the JDK React Native's Android build targets; the machine only had JDK 25), Android SDK command-line tools, an API 36 Pixel 8 emulator, NDK 27.1.
+- `expo run:android` built and ran first time; no app code changes were needed.
+- The first Maestro runs failed for environment reasons, not app reasons:
+  - The emulator's system services crashed while Gradle was compiling alongside it on a 16 GB Mac. Fixed by giving the emulator 4 GB and never building while it runs tests.
+  - With `clearState`, the dev client falls back to its server list and re-downloads the JS bundle, which outran the flow's 20 s wait. Tested the Release APK instead, which is also what a user installs.
+- One real flow fix: after navigating back, Android's keyboard loses its connection to the search field, so typing without refocusing went nowhere (iOS keeps focus). `CompletionUnlocks` now taps the field before typing, like a user would.
+- Release APK: 4/4 Maestro flows pass, and the updated flows still pass 4/4 on an iOS Release build. Also checked by hand: the hardware back button walks the course stack, dark mode follows the system live, and completed courses survive a relaunch.

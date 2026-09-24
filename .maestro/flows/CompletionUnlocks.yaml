@@ -13,6 +13,8 @@ onFlowStart:
 - tapOn:
     id: 'toggle-completed'
 - tapOn: 'Back'
+# Refocus before typing: Android's keyboard drops its connection to the field on navigation.
+- tapOn: '.*Search code or title.*'
 - eraseText: 20
 - inputText: 'COMP 3711'
 - tapOn:
@@ -29,6 +31,7 @@ onFlowStart:
 - takeScreenshot: completion-2-met
 - tapOn: 'Back'
 - tapOn: 'Unlocked for me'
+- tapOn: '.*Search code or title.*'
 - eraseText: 20
 - inputText: 'COMP 37'
 - assertVisible:
