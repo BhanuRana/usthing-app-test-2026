@@ -1,0 +1,40 @@
+#flow: Screenshots
+#intent:
+# Regenerates the README screenshots (not a test; kept out of flows/). Run it once in light
+# mode and once in dark mode, then copy the PNGs from Maestro's output into docs/screenshots:
+#   maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/screenshots.yaml
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: shared/_OnFlowStart.yaml
+---
+- takeScreenshot: explore
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp 2011'
+- tapOn:
+    id: 'course-row-COMP 2011'
+- tapOn:
+    id: 'toggle-completed'
+- tapOn: 'Back'
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp37'
+- hideKeyboard
+- takeScreenshot: search
+- tapOn:
+    id: 'course-row-COMP 3711'
+- takeScreenshot: eligibility
+- tapOn: 'Show prerequisites of COMP 2011'
+- scroll
+- takeScreenshot: prerequisites
+- tapOn: 'Back'
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'ucmp6030'
+- hideKeyboard
+- tapOn:
+    id: 'course-row-UCMP 6030'
+- tapOn: 'Show prerequisites of UCMP 6040'
+- takeScreenshot: cycle
+- tapOn: 'Back'
+- tapOn: 'My Courses.*'
+- takeScreenshot: my-courses

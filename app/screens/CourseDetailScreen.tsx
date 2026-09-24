@@ -1,10 +1,12 @@
-import { ReactNode, useCallback, useMemo, useState } from "react"
+import { ComponentProps, ReactNode, useCallback, useMemo, useState } from "react"
 import { Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 
 import { Chip } from "@/components/course/Chip"
+import { DeptBadge } from "@/components/course/DeptBadge"
 import { LinkedCodesText } from "@/components/course/LinkedCodesText"
 import { PrereqTree } from "@/components/course/PrereqTree"
+import { $card } from "@/components/course/styles"
 import { EmptyState } from "@/components/EmptyState"
 import { Header } from "@/components/Header"
 import { Screen } from "@/components/Screen"
@@ -108,32 +110,50 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         contentContainerStyle={themed($content)}
         testID="course-detail-scroll"
       >
-        <View style={themed($titleBlock)}>
-          <Text preset="subheading" text={version.title} />
-          <Text
-            size="xs"
-            style={themed($dim)}
-            text={translate("course:meta", {
-              credits: version.credits,
-              career: translate(
-                course.career === "UG" ? "course:undergraduate" : "course:postgraduate",
-              ),
-              prefix: course.prefix,
-            })}
-          />
-          <View style={themed($completedToggle)}>
-            <Chip
-              label={translate(isCompleted ? "course:completed" : "course:markCompleted")}
-              selected={isCompleted}
-              icon={isCompleted ? "checkmark" : "add"}
-              accessibilityState={{ checked: isCompleted }}
-              onPress={() => toggleCompleted(code)}
-              testID="toggle-completed"
-            />
+        <View style={themed([$card, $hero])}>
+          <View style={$heroTop}>
+            <DeptBadge prefix={course.prefix} size={52} />
+            <Text preset="subheading" style={$flex} text={version.title} />
           </View>
+          <View style={$wrap}>
+            <InfoPill
+              icon="ribbon-outline"
+              text={translate("course:credits", { credits: version.credits })}
+            />
+            <InfoPill
+              icon="school-outline"
+              text={translate(
+                course.career === "UG" ? "course:undergraduate" : "course:postgraduate",
+              )}
+            />
+            <InfoPill icon="business-outline" text={course.prefix} />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ checked: isCompleted }}
+            onPress={() => toggleCompleted(code)}
+            testID="toggle-completed"
+            style={({ pressed }) => [
+              themed($completeButton),
+              isCompleted && themed($completeButtonDone),
+              pressed && $pressed,
+            ]}
+          >
+            <Ionicons
+              name={isCompleted ? "checkmark-circle" : "add-circle-outline"}
+              size={20}
+              color={isCompleted ? colors.success : colors.tint}
+            />
+            <Text
+              weight="semiBold"
+              size="xs"
+              style={{ color: isCompleted ? colors.success : colors.tint }}
+              tx={isCompleted ? "course:completed" : "course:markCompleted"}
+            />
+          </Pressable>
         </View>
 
-        <Section title={translate("course:offeredIn")}>
+        <Section icon="calendar-outline" title={translate("course:offeredIn")}>
           <View style={$wrap}>
             {terms.map((t, i) => {
               const offered = course.terms.includes(i)
@@ -161,7 +181,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
           )}
         </Section>
 
-        <Section title={translate("course:prerequisites")}>
+        <Section icon="git-network-outline" title={translate("course:prerequisites")}>
           {tree ? (
             <>
               {!isCompleted && <Eligibility tree={tree} completed={completed} />}
@@ -183,6 +203,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
 
         {chainLevels.length > 0 && (
           <Section
+            icon="layers-outline"
             title={translate("course:fullChain")}
             subtitle={translate("course:fullChainSummary", {
               count: chainLevels.flat().length,
@@ -199,7 +220,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
                 />
                 <View style={[$wrap, $flex]}>
                   {level.map((c) => (
-                    <CodeChip key={c} code={c} onPress={openCourse} />
+                    <CodeChip key={c} code={c} done={completed.has(c)} onPress={openCourse} />
                   ))}
                 </View>
               </View>
@@ -208,13 +229,14 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         )}
 
         <Section
+          icon="arrow-redo-outline"
           title={translate("course:unlocks")}
           subtitle={unlocks.length ? translate("course:unlocksHint", { code }) : undefined}
         >
           {unlocks.length ? (
             <View style={$wrap}>
               {unlocks.map((c) => (
-                <CodeChip key={c} code={c} onPress={openCourse} />
+                <CodeChip key={c} code={c} done={completed.has(c)} onPress={openCourse} />
               ))}
             </View>
           ) : (
@@ -223,7 +245,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         </Section>
 
         {!!version.description && (
-          <Section title={translate("course:description")}>
+          <Section icon="document-text-outline" title={translate("course:description")}>
             <Text size="xs" text={version.description} />
           </Section>
         )}
@@ -238,14 +260,14 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         ).map(
           ([label, value]) =>
             !!value && (
-              <Section key={label} title={translate(label)}>
+              <Section key={label} icon="information-circle-outline" title={translate(label)}>
                 <LinkedCodesText text={value} onPressCode={openCourse} />
               </Section>
             ),
         )}
 
         {version.attributes.length > 0 && (
-          <Section title={translate("course:attributes")}>
+          <Section icon="pricetag-outline" title={translate("course:attributes")}>
             {version.attributes.map((a) => (
               <Text key={a.label} size="xs" text={`• ${a.description}`} />
             ))}
@@ -253,7 +275,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         )}
 
         {version.cilos.length > 0 && (
-          <Section title={translate("course:cilos")}>
+          <Section icon="bulb-outline" title={translate("course:cilos")}>
             {version.cilos.map((c, i) => (
               <Text key={i} size="xs" style={$cilo} text={`${i + 1}. ${c}`} />
             ))}
@@ -264,21 +286,48 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   )
 }
 
+type IconName = ComponentProps<typeof Ionicons>["name"]
+
 function Section({
+  icon,
   title,
   subtitle,
   children,
 }: {
+  icon: IconName
   title: string
   subtitle?: string
   children: ReactNode
 }) {
-  const { themed } = useAppTheme()
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
   return (
-    <View style={themed($section)}>
-      <Text weight="bold" size="sm" text={title} />
-      {subtitle && <Text size="xxs" style={themed($dim)} text={subtitle} />}
+    <View style={themed([$card, $section])}>
+      <View style={$sectionHeader}>
+        <View style={themed($sectionIcon)}>
+          <Ionicons name={icon} size={15} color={colors.tint} />
+        </View>
+        <View style={$flex}>
+          <Text weight="bold" size="sm" text={title} />
+          {subtitle && <Text size="xxs" style={themed($dim)} text={subtitle} />}
+        </View>
+      </View>
       <View style={$sectionBody}>{children}</View>
+    </View>
+  )
+}
+
+function InfoPill({ icon, text }: { icon: IconName; text: string }) {
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
+  return (
+    <View style={themed($infoPill)}>
+      <Ionicons name={icon} size={13} color={colors.textDim} />
+      <Text size="xxs" weight="medium" style={themed($dim)} text={text} />
     </View>
   )
 }
@@ -298,7 +347,13 @@ function Eligibility({ tree, completed }: { tree: PrereqNode; completed: Readonl
   }
   const status = evaluate(tree, completed)
   const icon =
-    status === "met" ? "checkmark-circle" : status === "unmet" ? "close-circle" : "help-circle"
+    status === "met" ? "checkmark-circle" : status === "unmet" ? "alert-circle" : "help-circle"
+  const tone =
+    status === "met"
+      ? { fg: colors.success, bg: colors.successSoft }
+      : status === "unmet"
+        ? { fg: colors.warning, bg: colors.warningSoft }
+        : { fg: colors.textDim, bg: colors.surfaceAlt }
   const message =
     status === "met"
       ? translate("course:eligibleMet")
@@ -310,11 +365,11 @@ function Eligibility({ tree, completed }: { tree: PrereqNode; completed: Readonl
 
   return (
     <View
-      style={[themed($eligibility), status === "met" && themed($eligibilityMet)]}
+      style={[themed($eligibility), { backgroundColor: tone.bg }]}
       accessibilityRole="summary"
       testID={`eligibility-${status}`}
     >
-      <Ionicons name={icon} size={18} color={status === "met" ? colors.tint : colors.textDim} />
+      <Ionicons name={icon} size={20} color={tone.fg} />
       <Text size="xs" weight="medium" style={$flex} text={message} />
     </View>
   )
@@ -330,15 +385,21 @@ function CodeChip({
   done?: boolean
   onPress: (code: string) => void
 }) {
+  const {
+    theme: { colors },
+  } = useAppTheme()
   const course = getCourse(code)
   return (
     <Chip
       label={code}
       selected={done}
+      style={done ? { backgroundColor: colors.success, borderColor: colors.success } : undefined}
       icon={done ? "checkmark" : undefined}
       muted={!course}
       disabled={!course}
-      accessibilityLabel={course ? `${code}, ${course.title}` : code}
+      accessibilityLabel={[code, course?.title, done && translate("prereq:completed")]
+        .filter(Boolean)
+        .join(", ")}
       onPress={() => onPress(code)}
     />
   )
@@ -350,20 +411,61 @@ const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingBottom: spac
 
 const $starButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingHorizontal: spacing.md })
 
-const $titleBlock: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.md,
-  gap: spacing.xxs,
-})
-
-const $section: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
-  marginTop: spacing.lg,
+const $hero: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginHorizontal: spacing.md,
-  paddingTop: spacing.md,
-  borderTopWidth: 1,
-  borderTopColor: colors.separator,
+  marginTop: spacing.xs,
+  padding: spacing.md,
+  gap: spacing.sm,
 })
 
-const $sectionBody: ViewStyle = { marginTop: 8, gap: 6 }
+const $heroTop: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 14 }
+
+const $infoPill: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+  paddingHorizontal: spacing.xs,
+  paddingVertical: 3,
+  borderRadius: 8,
+  backgroundColor: colors.surfaceAlt,
+})
+
+const $completeButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  height: 44,
+  borderRadius: 12,
+  borderWidth: 1.5,
+  borderColor: colors.tint,
+})
+
+const $completeButtonDone: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.transparent,
+  backgroundColor: colors.successSoft,
+})
+
+const $pressed: ViewStyle = { opacity: 0.7 }
+
+const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.sm,
+  marginHorizontal: spacing.md,
+  padding: spacing.md,
+})
+
+const $sectionHeader: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 10 }
+
+const $sectionIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.tintSoft,
+})
+
+const $sectionBody: ViewStyle = { marginTop: 12, gap: 6 }
 
 const $wrap: ViewStyle = { flexDirection: "row", flexWrap: "wrap", gap: 6 }
 
@@ -373,7 +475,7 @@ const $raw: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginTop: spacing.sm,
   padding: spacing.sm,
   borderRadius: 8,
-  backgroundColor: colors.palette.neutral300,
+  backgroundColor: colors.surfaceAlt,
   gap: 2,
 })
 
@@ -391,22 +493,13 @@ const $levelLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $cilo: TextStyle = { marginBottom: 2 }
 
-const $completedToggle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  marginTop: spacing.xs,
-})
-
-const $eligibility: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $eligibility: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
   padding: spacing.sm,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: colors.border,
+  borderRadius: 12,
   marginBottom: spacing.xs,
 })
-
-const $eligibilityMet: ThemedStyle<ViewStyle> = ({ colors }) => ({ borderColor: colors.tint })
 
 const $notFound: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingTop: spacing.xxl })

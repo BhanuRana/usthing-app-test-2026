@@ -62,3 +62,10 @@ Chronological notes on how the app was built. The reasoning behind each choice i
   - With `clearState`, the dev client falls back to its server list and re-downloads the JS bundle, which outran the flow's 20 s wait. Tested the Release APK instead, which is also what a user installs.
 - One real flow fix: after navigating back, Android's keyboard loses its connection to the search field, so typing without refocusing went nowhere (iOS keeps focus). `CompletionUnlocks` now taps the field before typing, like a user would.
 - Release APK: 4/4 Maestro flows pass, and the updated flows still pass 4/4 on an iOS Release build. Also checked by hand: the hardware back button walks the course stack, dark mode follows the system live, and completed courses survive a relaunch.
+
+**9 · Design pass** (D14)
+- Tokens (`surface`, `surfaceAlt`, `tintSoft`, `success`, `warning`), department colours, and a shared card style.
+- Explore: course cards with department badges and a credits pill, highlighted search matches, a completed tick, and a header subtitle showing the count and term.
+- Course page: a header card (badge, title, info pills, "Mark as completed" button), sections as cards with icons, a coloured eligibility banner, and tree group labels as pills.
+- My Courses: stats tiles. Department picker: badges.
+- 5 new Jest tests for highlighting (48 total). Maestro: `PrerequisiteCycle` now scrolls to the chain summary, since the taller cards moved it below the fold. `.maestro/screenshots.yaml` produces the README screenshots.

@@ -3,16 +3,18 @@
 A React Native + Expo app for browsing HKUST courses and understanding their prerequisites. Built for the USThing App Team 2026-27 Fall technical test on the provided Ignite template, using the supplied local `courses.json`. There's no backend and no network.
 
 <p align="center">
-  <img src="docs/screenshots/explore.png" width="160" alt="Explore: search and filters" />
-  <img src="docs/screenshots/prerequisites.png" width="160" alt="Expandable prerequisite tree" />
-  <img src="docs/screenshots/eligibility.png" width="160" alt="Prerequisite check against completed courses" />
-  <img src="docs/screenshots/cycle.png" width="160" alt="A real prerequisite cycle, marked instead of recursing" />
-  <img src="docs/screenshots/dark.png" width="160" alt="Dark mode" />
+  <img src="docs/screenshots/explore.png" width="130" alt="Explore: course cards with department colours and filters" />
+  <img src="docs/screenshots/search.png" width="130" alt="Search with the matched part of each code highlighted" />
+  <img src="docs/screenshots/eligibility.png" width="130" alt="Course page: prerequisite check against completed courses" />
+  <img src="docs/screenshots/prerequisites.png" width="130" alt="Expandable prerequisite tree and full chain" />
+  <img src="docs/screenshots/cycle.png" width="130" alt="A real prerequisite cycle, marked instead of recursing" />
+  <img src="docs/screenshots/my-courses.png" width="130" alt="My Courses: completed, credits earned, starred" />
+  <img src="docs/screenshots/dark.png" width="130" alt="Dark mode" />
 </p>
 
 **What it does**
 
-- **Browse & search** 4,030 courses across 4 terms and 129 departments. Search by code (`comp3711`, `COMP 3711`) or title (`operating systems`, even `systems operating`). Filter by semester, department and UG/PG.
+- **Browse & search** 4,030 courses across 4 terms and 129 departments. Search by code (`comp3711`, `COMP 3711`) or title (`operating systems`, even `systems operating`). Filter by semester, department and UG/PG. Matches are highlighted in the results, and each department has its own colour badge, so mixed lists are easy to scan.
 - **Course details**, per term (descriptions and prerequisites change between terms): credits, description, prerequisites, co-requisites, exclusions, attributes, learning outcomes. Course codes in free text are tappable links.
 - **Prerequisite explorer** *(required challenge)*:
   - An expandable AND/OR tree: expand any prerequisite to reveal its own, as deep as the chain goes.
@@ -24,7 +26,8 @@ A React Native + Expo app for browsing HKUST courses and understanding their pre
   - Star courses.
   - Mark courses as **completed** to see whether you meet a course's prerequisites ("Still needed: one of COMP 2711 / MATH 2343").
   - Filter Explore to **"Unlocked for me"**: everything you can take next.
-- Light/dark mode, VoiceOver labels on interactive elements, and state that persists across launches.
+  - A summary of courses completed, credits earned and courses starred.
+- A consistent visual language ([D14](docs/DECISIONS.md#d14--visual-design-pass-2026-09-25)): cards, green for "met", amber for "still needed", orange for anything tappable. Light/dark mode, VoiceOver labels on interactive elements, and state that persists across launches.
 
 ---
 
@@ -52,7 +55,7 @@ yarn data         # courses.json -> app/data/generated/ (~2 s)
 **Checks**
 
 ```bash
-yarn test         # 43 Jest tests: parser, traversal, eligibility, search on the real data
+yarn test         # 48 Jest tests: parser, traversal, eligibility, search on the real data, highlighting
 yarn compile      # TypeScript
 yarn lint:check
 yarn bench        # data-layer micro-benchmarks
@@ -151,13 +154,14 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 
 ## Testing
 
-- **Jest (43 tests):**
+- **Jest (48 tests):**
   - the parser on real-world strings (brackets, precedence, notes, `or above`, enumerators, unbalanced parentheses);
   - traversal (per-term lookup, cycles, self-reference, shared subtrees);
   - eligibility (three-valued logic, "still needed");
   - search/filter/unlocked on the **real generated data**;
+  - search-match highlighting (any spacing/case for codes, any word order for titles);
   - plus the template's i18n key check.
-- **Maestro (4 flows in `.maestro/flows`):** search → open → follow a prerequisite → back; the UCMP cycle; department + career filter → star → My Courses; complete two courses → eligibility changes → "Unlocked for me".
+- **Maestro (4 flows in `.maestro/flows`):** search → open → follow a prerequisite → back; the UCMP cycle; department + career filter → star → My Courses; complete two courses → eligibility changes → "Unlocked for me". `.maestro/screenshots.yaml` regenerates the screenshots above.
 
 ## Assumptions and limitations
 

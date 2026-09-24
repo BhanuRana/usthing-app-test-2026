@@ -10,6 +10,8 @@ import { translate } from "@/i18n/translate"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+import { DeptBadge } from "./DeptBadge"
+
 interface DepartmentPickerProps {
   visible: boolean
   departments: Department[]
@@ -80,6 +82,13 @@ export function DepartmentPicker(props: DepartmentPickerProps) {
                 testID={`department-${item?.prefix ?? "all"}`}
                 style={({ pressed }) => [themed($row), pressed && { opacity: 0.6 }]}
               >
+                {item ? (
+                  <DeptBadge prefix={item.prefix} size={32} />
+                ) : (
+                  <View style={themed($allIcon)}>
+                    <Ionicons name="apps-outline" size={16} color={colors.textDim} />
+                  </View>
+                )}
                 <Text
                   weight={isSelected ? "bold" : "normal"}
                   style={$rowLabel}
@@ -133,12 +142,21 @@ const $row: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   alignItems: "center",
   gap: spacing.sm,
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.xs,
   borderBottomWidth: 1,
   borderBottomColor: colors.separator,
 })
 
 const $rowLabel: TextStyle = { flex: 1 }
+
+const $allIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 32,
+  height: 32,
+  borderRadius: 9,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.surfaceAlt,
+})
 
 const $zero: TextStyle = { opacity: 0.5 }
 

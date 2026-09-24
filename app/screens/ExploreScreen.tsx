@@ -79,10 +79,18 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
 
   const renderItem = useCallback(
     ({ item }: { item: CourseSummary }) => (
-      <CourseRow course={item} starred={starred.has(item.code)} onPress={openCourse} />
+      <CourseRow
+        course={item}
+        starred={starred.has(item.code)}
+        completed={completed.has(item.code)}
+        query={query}
+        onPress={openCourse}
+      />
     ),
-    [starred, openCourse],
+    [starred, completed, query, openCourse],
   )
+
+  const extraData = useMemo(() => [starred, completed], [starred, completed])
 
   const SearchIcon = useCallback(
     (props: TextFieldAccessoryProps) => (
@@ -111,12 +119,15 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$flex}>
       <View style={themed($header)}>
-        <View style={$titleRow}>
+        <View>
           <Text preset="heading" size="xl" tx="explore:title" />
           <Text
             size="xs"
             style={themed($dim)}
-            text={translate("explore:count", { count: results.length })}
+            text={`${translate("explore:count", {
+              count: results.length,
+              n: results.length.toLocaleString("en-US"),
+            })} · ${term === undefined ? translate("explore:inAllTerms") : terms[term].name}`}
           />
         </View>
 
@@ -192,7 +203,7 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
         data={results}
         keyExtractor={(c) => c.code}
         renderItem={renderItem}
-        extraData={starred}
+        extraData={extraData}
         getItemLayout={(_, index) => ({
           length: COURSE_ROW_HEIGHT,
           offset: COURSE_ROW_HEIGHT * index,
@@ -204,6 +215,7 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         style={$flex}
+        contentContainerStyle={themed($listContent)}
         ListEmptyComponent={
           <EmptyState
             headingTx="explore:noResultsHeading"
@@ -235,15 +247,14 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
 })
 
-const $titleRow: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "baseline",
-  justifyContent: "space-between",
-}
-
 const $dim: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim })
 
-const $search: ThemedStyle<ViewStyle> = () => ({ borderRadius: 10, alignItems: "center" })
+const $search: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderRadius: 14,
+  alignItems: "center",
+  backgroundColor: colors.surface,
+  borderColor: colors.separator,
+})
 
 const $accessory: ViewStyle = { justifyContent: "center", alignSelf: "center" }
 
@@ -257,13 +268,14 @@ const $chipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.sm,
 })
 
-const $lastChipRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $lastChipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexWrap: "wrap",
   rowGap: spacing.xs,
   paddingBottom: spacing.sm,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.separator,
 })
+
+// No top padding: getItemLayout offsets assume rows start at 0.
+const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingBottom: spacing.md })
 
 const $empty: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.xl,

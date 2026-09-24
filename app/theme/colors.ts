@@ -82,4 +82,31 @@ export const colors = {
    * Error Background.
    */
   errorBackground: palette.angry100,
+  /**
+   * Raised surfaces: cards, the search field, sheets.
+   */
+  surface: palette.neutral100,
+  /**
+   * Recessed fills inside a card (e.g. the raw prerequisite text).
+   */
+  surfaceAlt: "#EDE8E5",
+  /**
+   * A faint wash of the tint, behind selected or highlighted content.
+   */
+  tintSoft: "rgba(199, 101, 66, 0.12)",
+  /**
+   * Satisfied state: completed courses, met prerequisites. Kept apart from `tint`, which
+   * marks things you can tap.
+   */
+  success: "#2E7D4F",
+  successSoft: "rgba(46, 125, 79, 0.12)",
+  /**
+   * Something still to do: unmet prerequisites.
+   */
+  warning: "#9A5B00",
+  warningSoft: "rgba(214, 140, 20, 0.14)",
+  /**
+   * Card shadow (light mode only; dark mode separates surfaces by tone).
+   */
+  shadow: "rgba(60, 40, 30, 0.10)",
 } as const

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react"
 import { SectionList, TextStyle, View, ViewStyle } from "react-native"
 
 import { CourseRow } from "@/components/course/CourseRow"
+import { $card } from "@/components/course/styles"
 import { EmptyState } from "@/components/EmptyState"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -17,6 +18,20 @@ import { useCompleted, useSelectedTerm, useStarred } from "@/utils/usePreference
 const toCourses = (codes: ReadonlySet<string>) =>
   [...codes].map(getCourse).filter((c): c is CourseSummary => !!c)
 
+/**
+ * Credits of the completed courses. A few courses carry a range ("0-4"); they count at their
+ * minimum and the total is shown as "at least" with a trailing "+".
+ */
+function creditsEarned(courses: CourseSummary[]): string {
+  let total = 0
+  let variable = false
+  for (const c of courses) {
+    total += parseFloat(c.credits) || 0
+    if (c.credits.includes("-")) variable = true
+  }
+  return `${total}${variable ? "+" : ""}`
+}
+
 export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
   const { themed } = useAppTheme()
   const { starred } = useStarred()
@@ -31,6 +46,11 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
     [starred, completed],
   )
   const isEmpty = sections.every((s) => s.data.length === 0)
+  const stats = [
+    { key: "completed", value: String(sections[1].data.length), label: "myCourses:statCompleted" },
+    { key: "credits", value: creditsEarned(sections[1].data), label: "myCourses:statCredits" },
+    { key: "starred", value: String(sections[0].data.length), label: "myCourses:statStarred" },
+  ] as const
 
   const openCourse = useCallback(
     (code: string) => navigation.navigate("CourseDetail", { code, term }),
@@ -50,8 +70,28 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
         <SectionList
           sections={sections}
           keyExtractor={(c, i) => `${c.code}-${i}`}
+          ListHeaderComponent={
+            <View style={themed($stats)}>
+              {stats.map((s) => (
+                <View
+                  key={s.key}
+                  style={themed([$card, $stat])}
+                  accessible
+                  accessibilityLabel={`${s.value} ${translate(s.label)}`}
+                >
+                  <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
+                  <Text size="xxs" style={themed($statLabel)} tx={s.label} />
+                </View>
+              ))}
+            </View>
+          }
           renderItem={({ item }) => (
-            <CourseRow course={item} starred={starred.has(item.code)} onPress={openCourse} />
+            <CourseRow
+              course={item}
+              starred={starred.has(item.code)}
+              completed={completed.has(item.code)}
+              onPress={openCourse}
+            />
           )}
           renderSectionHeader={({ section }) => (
             <View style={themed($sectionHeader)}>
@@ -70,6 +110,7 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
           }
           stickySectionHeadersEnabled
           style={$flex}
+          contentContainerStyle={themed($listContent)}
         />
       )}
     </Screen>
@@ -89,9 +130,26 @@ const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingHorizontal: spacing.md,
   paddingTop: spacing.md,
   paddingBottom: spacing.xs,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.separator,
 })
+
+const $stats: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  gap: spacing.xs,
+  paddingHorizontal: spacing.md,
+  paddingTop: spacing.xs,
+})
+
+const $stat: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.sm,
+})
+
+const $statValue: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.tint })
+
+const $statLabel: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim })
+
+const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingBottom: spacing.md })
 
 const $sectionTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,

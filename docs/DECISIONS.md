@@ -106,3 +106,16 @@ I drove every screen with Maestro in light and dark mode, and fixed:
 
 **Decision:** Re-enable the template's Maestro setup with four flows covering the brief's core paths: search/open/follow, the real prerequisite cycle, filters and starring, completion and "Unlocked for me".
 **Why:** The unit tests prove the algorithms. These flows prove the screens wire them up correctly, and they caught real issues during QA. The template already shipped Maestro support, so this adds no new tooling.
+
+### D14 · Visual design pass (2026-09-25)
+
+**Decision:** A small design system on top of the template's theme, applied to every screen:
+- **Surfaces:** courses, sections and stats sit on cards (`surface` token, soft shadow in light mode, a lighter tone in dark mode, where shadows don't show).
+- **Colour carries meaning:** orange (`tint`) = tappable, green (`success`) = met/completed, amber (`warning`) = still needed. Before this, "met" and "link" were both orange.
+- **Department colours:** each prefix hashes to one of 8 hues (no green or amber, which already carry meaning), shown as a badge on rows, course pages and the department picker. Same prefix, same colour, everywhere.
+- **Search highlighting:** the matched part of the code (typed with any spacing or case) and the matched title words are emphasised, so it's clear why a result matched.
+- **My Courses summary:** completed, credits earned (range-credit courses count at their minimum and the total shows "+"), and starred.
+
+**Why:** The grading criteria include UX ("information and interactions are clear and coherent"). The old screens worked but were flat, and they used one colour for two meanings. Everything is JS/styling on existing dependencies: no new native modules, so there's no rebuild risk and the bundle barely grows.
+**Kept fixed:** rows are still a fixed height (card + gap) so `getItemLayout` stays exact, and all test IDs and accessibility labels are unchanged.
+**Also fixed:** completed courses were meant to be highlighted in the full chain, but the flag was never passed through. They now show as green chips there and in "Leads to".

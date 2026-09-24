@@ -30,8 +30,9 @@ const en = {
     allTerms: "All terms",
     allDepartments: "All departments",
     // i18next picks count_one for 1 and falls back to `count` otherwise.
-    count: "{{count}} courses",
-    count_one: "{{count}} course",
+    count: "{{n}} courses",
+    count_one: "{{n}} course",
+    inAllTerms: "all terms",
     noResultsHeading: "No matching courses",
     noResultsContent: "Try a different search, or clear the filters.",
     clearFilters: "Clear filters",
@@ -50,9 +51,12 @@ const en = {
     emptyContent:
       "Star courses to keep them handy, and mark the ones you've completed to see what you can take next.",
     none: "None yet",
+    statCompleted: "Completed",
+    statCredits: "Credits earned",
+    statStarred: "Starred",
   },
   course: {
-    meta: "{{credits}} credits · {{career}} · {{prefix}}",
+    credits: "{{credits}} credits",
     undergraduate: "Undergraduate",
     postgraduate: "Postgraduate",
     offeredIn: "Offered in",

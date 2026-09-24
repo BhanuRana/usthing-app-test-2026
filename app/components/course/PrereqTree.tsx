@@ -66,12 +66,14 @@ function NodeView({ node, ancestors, completed, onOpenCourse }: NodeViewProps) {
       const met = completed.size > 0 && evaluate(node, completed) === "met"
       return (
         <View>
-          <Text
-            size="xxs"
-            weight="bold"
-            style={[themed($groupLabel), met && themed($metText)]}
-            text={met ? `${label} · ${translate("prereq:groupMet").toUpperCase()} ✓` : label}
-          />
+          <View style={[themed($groupPill), met && themed($groupPillMet)]}>
+            <Text
+              size="xxs"
+              weight="bold"
+              style={[themed($groupLabel), met && themed($metText)]}
+              text={met ? `${label} · ${translate("prereq:groupMet").toUpperCase()} ✓` : label}
+            />
+          </View>
           <View style={themed($group)}>
             {node.children.map((child, i) => (
               <NodeView
@@ -168,7 +170,7 @@ function CourseNode({ code, note, ancestors, completed, onOpenCourse }: CourseNo
           </Text>
           {isCompleted && (
             <View style={$completedRow}>
-              <Ionicons name="checkmark-circle" size={13} color={colors.tint} />
+              <Ionicons name="checkmark-circle" size={13} color={colors.success} />
               <Text size="xxs" style={themed($metText)} tx="prereq:completed" />
             </View>
           )}
@@ -212,7 +214,7 @@ const $courseText: ViewStyle = { flex: 1 }
 
 const $completedRow: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4 }
 
-const $metText: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.tint })
+const $metText: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.success })
 
 const $code: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.tint })
 
@@ -234,10 +236,23 @@ const $textNode: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   paddingLeft: spacing.xs,
 })
 
+const $groupPill: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  alignSelf: "flex-start",
+  marginTop: 4,
+  marginBottom: 2,
+  paddingHorizontal: 6,
+  paddingVertical: 1,
+  borderRadius: 6,
+  backgroundColor: colors.surfaceAlt,
+})
+
+const $groupPillMet: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.successSoft,
+})
+
 const $groupLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   letterSpacing: 0.8,
-  marginTop: 4,
 })
 
 const $group: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

@@ -51,10 +51,10 @@ const $row: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4 }
 const $chip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderRadius: 16,
   borderWidth: 1,
-  borderColor: colors.border,
+  borderColor: colors.separator,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xxs + 2,
-  backgroundColor: colors.background,
+  backgroundColor: colors.surface,
 })
 
 const $chipSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -65,6 +65,7 @@ const $chipSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
 const $chipMuted: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderStyle: "dashed",
   borderColor: colors.separator,
+  backgroundColor: colors.transparent,
 })
 
 const $label: ThemedStyle<TextStyle> = () => ({ lineHeight: 18 })

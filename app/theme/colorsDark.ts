@@ -47,4 +47,12 @@ export const colors = {
   separator: palette.neutral300,
   error: palette.angry500,
   errorBackground: palette.angry100,
+  surface: "#241B20",
+  surfaceAlt: "#2F2529",
+  tintSoft: "rgba(232, 193, 180, 0.14)",
+  success: "#7CCB99",
+  successSoft: "rgba(124, 203, 153, 0.14)",
+  warning: "#F0B866",
+  warningSoft: "rgba(240, 184, 102, 0.14)",
+  shadow: "rgba(0, 0, 0, 0)",
 } as const
