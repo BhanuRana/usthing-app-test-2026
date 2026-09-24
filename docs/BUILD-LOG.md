@@ -49,3 +49,7 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 - App icon and splash: a small prerequisite graph in the app's accent colour, replacing the Ignite branding. The display name is "HKUST Courses".
 - `yarn bench`: every interaction is under 1 ms in Node; parsing the raw dataset would cost ~100 ms at startup.
 - README covering every section the brief requires.
+
+**7 · Submission checks**
+- Fresh `git clone` from GitHub → `yarn install --frozen-lockfile` → compile ✓ lint ✓ 43/43 tests ✓ → `yarn data` regenerates byte-identical output (0 files changed) ✓ → native Release build from scratch ✓ → 4/4 Maestro flows ✓.
+- Final code review found one edge case: "Unlocked for me" stayed active, invisibly, after un-completing every course. Fixed.

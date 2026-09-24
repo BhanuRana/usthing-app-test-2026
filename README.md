@@ -63,7 +63,7 @@ maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 4 en
 
 | Platform | Build | Result |
 |---|---|---|
-| iOS 26.5 simulator, iPhone 17 Pro | Debug (dev client) and Release | All features, light and dark mode; 4/4 Maestro E2E flows pass |
+| iOS 26.5 simulator, iPhone 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features, light and dark mode; 4/4 Maestro E2E flows pass |
 | Android | Not tested | Nothing in the code is iOS-specific (template components, React Navigation, MMKV), but I haven't run it on Android |
 
 ---
