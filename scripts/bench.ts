@@ -45,6 +45,7 @@ time("JSON.parse details/COMP.json (one department)", () => JSON.parse(compText)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { searchCourses, unlockedCourses } =
   require("../app/data/catalog") as typeof import("../app/data/catalog")
+
 const index: CatalogIndex = JSON.parse(indexText)
 const graph: PrereqGraph = JSON.parse(graphText)
 searchCourses({ text: "" }) // build search keys once
