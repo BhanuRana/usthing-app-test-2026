@@ -1,0 +1,40 @@
+#flow: CompletionUnlocks
+#intent:
+# Mark prerequisites as completed and watch COMP 3711 go from "still needed" to eligible,
+# then find it with the "Unlocked for me" filter.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- tapOn: '.*Search code or title.*'
+- inputText: 'COMP 2011'
+- tapOn:
+    id: 'course-row-COMP 2011'
+- tapOn:
+    id: 'toggle-completed'
+- tapOn: 'Back'
+- eraseText: 20
+- inputText: 'COMP 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- assertVisible: 'Still needed: one of COMP 2711.*'
+- takeScreenshot: completion-1-needed
+# COMP 2011 is ticked in the tree; follow the missing branch and complete it.
+- assertVisible: 'COMP 2011, .*Completed'
+- tapOn: 'COMP 2711, .*'
+- tapOn:
+    id: 'toggle-completed'
+- tapOn: 'Back'
+- assertVisible: 'You meet the prerequisites'
+- takeScreenshot: completion-2-met
+- tapOn: 'Back'
+- tapOn: 'Unlocked for me'
+- eraseText: 20
+- inputText: 'COMP 37'
+- assertVisible:
+    id: 'course-row-COMP 3711'
+- takeScreenshot: completion-3-unlocked
+- hideKeyboard
+- tapOn: 'My Courses.*'
+- assertVisible: 'COMPLETED · 2'
+- takeScreenshot: completion-4-my-courses

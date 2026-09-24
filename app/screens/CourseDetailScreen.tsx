@@ -10,12 +10,14 @@ import { Header } from "@/components/Header"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { getCourse, getCourseVersion, getIndex, getPrereqGraph } from "@/data/catalog"
+import { evaluate, missingRequirements } from "@/data/prereq/evaluate"
 import { prereqTreeFor, prerequisiteChain, unlockedBy } from "@/data/prereq/traverse"
+import type { PrereqNode } from "@/data/types"
 import { translate } from "@/i18n/translate"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { useStarred } from "@/utils/usePreferences"
+import { useCompleted, useStarred } from "@/utils/usePreferences"
 
 export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"CourseDetail">) {
   const { code, term: requestedTerm } = route.params
@@ -26,6 +28,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   const { terms } = getIndex()
   const course = getCourse(code)
   const { starred, toggle } = useStarred()
+  const { completed, toggle: toggleCompleted } = useCompleted()
 
   // Show the term the user was browsing if the course runs then, otherwise its newest term.
   const initialTerm =
@@ -56,6 +59,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   )
 
   const isStarred = starred.has(code)
+  const isCompleted = completed.has(code)
   const header = (
     <Header
       title={code}
@@ -111,6 +115,16 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
             style={themed($dim)}
             text={`${version.credits} credits · ${course.career === "UG" ? "Undergraduate" : "Postgraduate"} · ${course.prefix}`}
           />
+          <View style={themed($completedToggle)}>
+            <Chip
+              label={translate(isCompleted ? "course:completed" : "course:markCompleted")}
+              selected={isCompleted}
+              icon={isCompleted ? "checkmark" : "add"}
+              accessibilityState={{ checked: isCompleted }}
+              onPress={() => toggleCompleted(code)}
+              testID="toggle-completed"
+            />
+          </View>
         </View>
 
         <Section title={translate("course:offeredIn")}>
@@ -144,7 +158,13 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         <Section title={translate("course:prerequisites")}>
           {tree ? (
             <>
-              <PrereqTree node={tree} rootCode={code} onOpenCourse={openCourse} />
+              {!isCompleted && <Eligibility tree={tree} completed={completed} />}
+              <PrereqTree
+                node={tree}
+                rootCode={code}
+                completed={completed}
+                onOpenCourse={openCourse}
+              />
               <View style={themed($raw)}>
                 <Text size="xxs" weight="bold" style={themed($dim)} tx="course:asWritten" />
                 <LinkedCodesText text={version.prerequisite} onPressCode={openCourse} />
@@ -257,12 +277,59 @@ function Section({
   )
 }
 
-/** A course code that opens its detail page; shows the title on the chip for context. */
-function CodeChip({ code, onPress }: { code: string; onPress: (code: string) => void }) {
+/**
+ * Whether the user can take the course, from their completed courses. Evaluates only this
+ * course's direct prerequisites (see evaluate.ts), so it is cheap to run on every render.
+ */
+function Eligibility({ tree, completed }: { tree: PrereqNode; completed: ReadonlySet<string> }) {
+  const {
+    themed,
+    theme: { colors },
+  } = useAppTheme()
+
+  if (completed.size === 0) {
+    return <Text size="xs" style={themed($dim)} tx="course:eligibleHint" />
+  }
+  const status = evaluate(tree, completed)
+  const icon =
+    status === "met" ? "checkmark-circle" : status === "unmet" ? "close-circle" : "help-circle"
+  const message =
+    status === "met"
+      ? translate("course:eligibleMet")
+      : status === "unmet"
+        ? translate("course:eligibleUnmet", {
+            items: missingRequirements(tree, completed).join(", "),
+          })
+        : translate("course:eligibleUnknown")
+
+  return (
+    <View
+      style={[themed($eligibility), status === "met" && themed($eligibilityMet)]}
+      accessibilityRole="summary"
+      testID={`eligibility-${status}`}
+    >
+      <Ionicons name={icon} size={18} color={status === "met" ? colors.tint : colors.textDim} />
+      <Text size="xs" weight="medium" style={$flex} text={message} />
+    </View>
+  )
+}
+
+/** A course code that opens its detail page; `done` highlights courses the user completed. */
+function CodeChip({
+  code,
+  done,
+  onPress,
+}: {
+  code: string
+  done?: boolean
+  onPress: (code: string) => void
+}) {
   const course = getCourse(code)
   return (
     <Chip
       label={code}
+      selected={done}
+      icon={done ? "checkmark" : undefined}
       muted={!course}
       disabled={!course}
       accessibilityLabel={course ? `${code}, ${course.title}` : code}
@@ -317,5 +384,23 @@ const $levelLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $cilo: TextStyle = { marginBottom: 2 }
+
+const $completedToggle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  marginTop: spacing.xs,
+})
+
+const $eligibility: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  padding: spacing.sm,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.border,
+  marginBottom: spacing.xs,
+})
+
+const $eligibilityMet: ThemedStyle<ViewStyle> = ({ colors }) => ({ borderColor: colors.tint })
 
 const $notFound: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingTop: spacing.xxl })

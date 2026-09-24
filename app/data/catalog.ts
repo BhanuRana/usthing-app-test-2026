@@ -1,3 +1,5 @@
+import { evaluate } from "./prereq/evaluate"
+import { prereqTreeFor } from "./prereq/traverse"
 import type { CatalogIndex, CourseSummary, CourseVersion, PrereqGraph } from "./types"
 
 /**
@@ -49,6 +51,8 @@ export interface CourseQuery {
   /** Department prefix, or undefined for all departments. */
   prefix?: string
   career?: "UG" | "PG"
+  /** Restrict to these codes (e.g. courses unlocked by the user's completed courses). */
+  only?: ReadonlySet<string>
 }
 
 interface SearchKey {
@@ -89,6 +93,7 @@ export function searchCourses(query: CourseQuery): CourseSummary[] {
     if (query.prefix && course.prefix !== query.prefix) continue
     if (query.term !== undefined && !course.terms.includes(query.term)) continue
     if (query.career && course.career !== query.career) continue
+    if (query.only && !query.only.has(course.code)) continue
 
     const rank = text ? matchRank(key, text, textCompact, words) : 0
     if (rank >= 0) ranked.push({ course, rank })
@@ -106,4 +111,21 @@ function matchRank(key: SearchKey, text: string, textCompact: string, words: str
   if (at > 0) return 4
   if (words.length > 1 && words.every((w) => key.title.includes(w))) return 5
   return -1
+}
+
+/**
+ * Courses the user can now take: they have prerequisites (for the given term's version),
+ * those evaluate to met against `completed`, and the user hasn't taken them already.
+ * One evaluation of each course's direct prerequisite tree: ~4,000 small trees, a few ms.
+ */
+export function unlockedCourses(completed: ReadonlySet<string>, term?: number): Set<string> {
+  const out = new Set<string>()
+  if (completed.size === 0) return out
+  const graph = getPrereqGraph()
+  for (const course of getIndex().courses) {
+    if (completed.has(course.code)) continue
+    const tree = prereqTreeFor(graph, course.code, term)
+    if (tree && evaluate(tree, completed) === "met") out.add(course.code)
+  }
+  return out
 }

@@ -22,7 +22,7 @@ const en = {
   },
   tabs: {
     explore: "Explore",
-    starred: "Starred",
+    myCourses: "My Courses",
   },
   explore: {
     title: "Courses",
@@ -35,15 +35,20 @@ const en = {
     noResultsHeading: "No matching courses",
     noResultsContent: "Try a different search, or clear the filters.",
     clearFilters: "Clear filters",
+    unlocked: "Unlocked for me",
   },
   departmentPicker: {
     title: "Department",
     filterPlaceholder: "Filter departments",
   },
-  starred: {
-    title: "Starred",
-    emptyHeading: "No starred courses yet",
-    emptyContent: "Tap the star on a course to keep it here for quick access.",
+  myCourses: {
+    title: "My Courses",
+    starred: "Starred",
+    completed: "Completed",
+    emptyHeading: "Nothing here yet",
+    emptyContent:
+      "Star courses to keep them handy, and mark the ones you've completed to see what you can take next.",
+    none: "None yet",
   },
   course: {
     offeredIn: "Offered in",
@@ -67,6 +72,12 @@ const en = {
     notFound: "This course isn't in the catalogue.",
     star: "Star course",
     unstar: "Unstar course",
+    markCompleted: "Mark as completed",
+    completed: "Completed",
+    eligibleMet: "You meet the prerequisites",
+    eligibleUnmet: "Still needed: {{items}}",
+    eligibleUnknown: "Course prerequisites met; check the other requirements below",
+    eligibleHint: "Mark courses as completed to check whether you can take this one.",
   },
   prereq: {
     allOf: "All of",
@@ -74,6 +85,8 @@ const en = {
     cycle: "Loops back",
     notInCatalogue: "Not in catalogue",
     noneBelow: "No prerequisites",
+    completed: "Completed",
+    groupMet: "met",
     expand: "Show prerequisites of {{code}}",
     collapse: "Hide prerequisites of {{code}}",
   },

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { translate } from "@/i18n/translate"
 import { ExploreScreen } from "@/screens/ExploreScreen"
-import { StarredScreen } from "@/screens/StarredScreen"
+import { MyCoursesScreen } from "@/screens/MyCoursesScreen"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -43,12 +43,12 @@ export function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Starred"
-        component={StarredScreen}
+        name="MyCourses"
+        component={MyCoursesScreen}
         options={{
-          tabBarLabel: translate("tabs:starred"),
+          tabBarLabel: translate("tabs:myCourses"),
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "star" : "star-outline"} color={color} size={24} />
+            <Ionicons name={focused ? "bookmark" : "bookmark-outline"} color={color} size={24} />
           ),
         }}
       />

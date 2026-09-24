@@ -10,7 +10,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 // Bottom tabs
 export type TabParamList = {
   Explore: undefined
-  Starred: undefined
+  MyCourses: undefined
 }
 
 // App Stack Navigator types

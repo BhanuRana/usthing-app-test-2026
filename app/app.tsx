@@ -41,7 +41,7 @@ const config = {
     Tabs: {
       screens: {
         Explore: "",
-        Starred: "starred",
+        MyCourses: "my-courses",
       },
     },
     CourseDetail: "course/:code",

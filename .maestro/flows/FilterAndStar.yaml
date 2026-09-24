@@ -1,6 +1,6 @@
 #flow: FilterAndStar
 #intent:
-# Filter by department + career, star a course, and find it in the Starred tab.
+# Filter by department + career, star a course, and find it in My Courses.
 appId: ${MAESTRO_APP_ID}
 onFlowStart:
   - runFlow: ../shared/_OnFlowStart.yaml
@@ -20,7 +20,7 @@ onFlowStart:
 - tapOn: 'Star course'
 - assertVisible: 'Unstar course'
 - tapOn: 'Back'
-- tapOn: 'Starred.*'
+- tapOn: 'My Courses.*'
 - assertVisible:
     id: 'course-row-COMP 1021'
 - tapOn: 'Explore.*'

@@ -12,23 +12,37 @@ import { storage } from "./storage"
  */
 
 const STARRED_KEY = "prefs.starred"
+const COMPLETED_KEY = "prefs.completed"
 const TERM_KEY = "prefs.term"
 
-export function useStarred() {
-  const [list, setList] = useMMKVObject<string[]>(STARRED_KEY, storage)
-  const starred = useMemo(() => new Set(list ?? []), [list])
+/** A persisted set of course codes. Stored as a sorted array; exposed as a Set for O(1) lookups. */
+function useCodeSet(key: string) {
+  const [list, setList] = useMMKVObject<string[]>(key, storage)
+  const codes = useMemo(() => new Set(list ?? []), [list])
 
   const toggle = useCallback(
     (code: string) => {
-      const next = new Set(starred)
+      const next = new Set(codes)
       if (next.has(code)) next.delete(code)
       else next.add(code)
       setList([...next].sort())
     },
-    [starred, setList],
+    [codes, setList],
   )
 
+  return [codes, toggle] as const
+}
+
+/** Courses the user wants quick access to. */
+export function useStarred() {
+  const [starred, toggle] = useCodeSet(STARRED_KEY)
   return { starred, toggle }
+}
+
+/** Courses the user has passed; drives prerequisite checks and the "Unlocked" filter. */
+export function useCompleted() {
+  const [completed, toggle] = useCodeSet(COMPLETED_KEY)
+  return { completed, toggle }
 }
 
 /**

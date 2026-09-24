@@ -51,12 +51,14 @@ appId: ${MAESTRO_APP_ID}
     timeout: 20000
 
 # Dev builds float a draggable "Tools" button over the top-right header (where the star is).
-# Drag it out of the way. Release builds don't have it.
+# Drag it down the edge, out of the way. Release builds don't have it.
 - runFlow:
     when:
-      visible: 'Tools button'
+      visible:
+        id: 'gearshape.fill'
     commands:
       - swipe:
-          start: 90%, 12%
-          end: 8%, 70%
+          from:
+            id: 'gearshape.fill'
+          direction: DOWN
           duration: 1200

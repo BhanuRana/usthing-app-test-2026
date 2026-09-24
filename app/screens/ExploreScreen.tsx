@@ -9,13 +9,13 @@ import { EmptyState } from "@/components/EmptyState"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField, TextFieldAccessoryProps } from "@/components/TextField"
-import { getIndex, searchCourses } from "@/data/catalog"
+import { getIndex, searchCourses, unlockedCourses } from "@/data/catalog"
 import type { Career, CourseSummary } from "@/data/types"
 import { translate } from "@/i18n/translate"
 import type { TabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { useSelectedTerm, useStarred } from "@/utils/usePreferences"
+import { useCompleted, useSelectedTerm, useStarred } from "@/utils/usePreferences"
 
 export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
   const {
@@ -30,13 +30,19 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
   const [career, setCareer] = useState<Career>()
   const [pickerOpen, setPickerOpen] = useState(false)
   const { starred } = useStarred()
+  const { completed } = useCompleted()
+  const [onlyUnlocked, setOnlyUnlocked] = useState(false)
+  const unlocked = useMemo(
+    () => (onlyUnlocked ? unlockedCourses(completed, term) : undefined),
+    [onlyUnlocked, completed, term],
+  )
 
   // Typing updates `text` immediately (the input stays responsive); the list filters on the
   // deferred copy, which React lets lag behind during fast typing instead of blocking input.
   const query = useDeferredValue(text)
   const results = useMemo(
-    () => searchCourses({ text: query, term, prefix, career }),
-    [query, term, prefix, career],
+    () => searchCourses({ text: query, term, prefix, career, only: unlocked }),
+    [query, term, prefix, career, unlocked],
   )
 
   // Department counts respect the other filters, so the picker never offers a dead end silently.
@@ -53,18 +59,19 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
   const listRef = useRef<FlatList<CourseSummary>>(null)
   useEffect(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: false })
-  }, [query, term, prefix, career])
+  }, [query, term, prefix, career, unlocked])
 
   const openCourse = useCallback(
     (code: string) => navigation.navigate("CourseDetail", { code, term }),
     [navigation, term],
   )
 
-  const hasFilters = !!text || !!prefix || !!career
+  const hasFilters = !!text || !!prefix || !!career || onlyUnlocked
   const clearFilters = () => {
     setText("")
     setPrefix(undefined)
     setCareer(undefined)
+    setOnlyUnlocked(false)
   }
 
   const renderItem = useCallback(
@@ -157,6 +164,14 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
             onPress={() => setCareer(career === c ? undefined : c)}
           />
         ))}
+        {completed.size > 0 && (
+          <Chip
+            label={translate("explore:unlocked")}
+            selected={onlyUnlocked}
+            icon="lock-open-outline"
+            onPress={() => setOnlyUnlocked((v) => !v)}
+          />
+        )}
         {hasFilters && (
           <Pressable accessibilityRole="button" onPress={clearFilters} hitSlop={8}>
             <Text
@@ -240,6 +255,8 @@ const $chipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 
 const $lastChipRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexWrap: "wrap",
+  rowGap: spacing.xs,
   paddingBottom: spacing.sm,
   borderBottomWidth: 1,
   borderBottomColor: colors.separator,

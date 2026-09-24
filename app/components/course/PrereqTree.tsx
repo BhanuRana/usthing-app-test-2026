@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
 import { getCourse, getPrereqGraph } from "@/data/catalog"
+import { evaluate } from "@/data/prereq/evaluate"
 import { expansionState, prereqTreeFor } from "@/data/prereq/traverse"
 import type { PrereqNode } from "@/data/types"
 import { translate } from "@/i18n/translate"
@@ -15,6 +16,8 @@ interface PrereqTreeProps {
   node: PrereqNode
   /** The course being viewed; the first ancestor on every branch. */
   rootCode: string
+  /** Courses the user has completed: shown ticked, and satisfied groups are marked "met". */
+  completed: ReadonlySet<string>
   onOpenCourse: (code: string) => void
 }
 
@@ -23,18 +26,26 @@ interface PrereqTreeProps {
  * expanded to reveal its own, one level at a time, so rendering cost follows what the user
  * opens rather than the size of the whole graph (the deepest chain is 9 levels).
  */
-export function PrereqTree({ node, rootCode, onOpenCourse }: PrereqTreeProps) {
-  return <NodeView node={node} ancestors={[rootCode]} onOpenCourse={onOpenCourse} />
+export function PrereqTree({ node, rootCode, completed, onOpenCourse }: PrereqTreeProps) {
+  return (
+    <NodeView
+      node={node}
+      ancestors={[rootCode]}
+      completed={completed}
+      onOpenCourse={onOpenCourse}
+    />
+  )
 }
 
 interface NodeViewProps {
   node: PrereqNode
   /** Course codes from the root down to this node's parent course. */
   ancestors: string[]
+  completed: ReadonlySet<string>
   onOpenCourse: (code: string) => void
 }
 
-function NodeView({ node, ancestors, onOpenCourse }: NodeViewProps) {
+function NodeView({ node, ancestors, completed, onOpenCourse }: NodeViewProps) {
   const { themed } = useAppTheme()
 
   switch (node.kind) {
@@ -44,27 +55,37 @@ function NodeView({ node, ancestors, onOpenCourse }: NodeViewProps) {
           code={node.code}
           note={node.note}
           ancestors={ancestors}
+          completed={completed}
           onOpenCourse={onOpenCourse}
         />
       )
     case "text":
       return <Text size="xs" style={themed($textNode)} text={node.text} />
-    default:
+    default: {
+      const label = translate(node.kind === "all" ? "prereq:allOf" : "prereq:oneOf").toUpperCase()
+      const met = completed.size > 0 && evaluate(node, completed) === "met"
       return (
         <View>
           <Text
             size="xxs"
             weight="bold"
-            style={themed($groupLabel)}
-            text={translate(node.kind === "all" ? "prereq:allOf" : "prereq:oneOf").toUpperCase()}
+            style={[themed($groupLabel), met && themed($metText)]}
+            text={met ? `${label} · ${translate("prereq:groupMet").toUpperCase()} ✓` : label}
           />
           <View style={themed($group)}>
             {node.children.map((child, i) => (
-              <NodeView key={i} node={child} ancestors={ancestors} onOpenCourse={onOpenCourse} />
+              <NodeView
+                key={i}
+                node={child}
+                ancestors={ancestors}
+                completed={completed}
+                onOpenCourse={onOpenCourse}
+              />
             ))}
           </View>
         </View>
       )
+    }
   }
 }
 
@@ -72,10 +93,11 @@ interface CourseNodeProps {
   code: string
   note?: string
   ancestors: string[]
+  completed: ReadonlySet<string>
   onOpenCourse: (code: string) => void
 }
 
-function CourseNode({ code, note, ancestors, onOpenCourse }: CourseNodeProps) {
+function CourseNode({ code, note, ancestors, completed, onOpenCourse }: CourseNodeProps) {
   const {
     themed,
     theme: { colors },
@@ -89,6 +111,7 @@ function CourseNode({ code, note, ancestors, onOpenCourse }: CourseNodeProps) {
   // Deeper levels use each course's newest version; only the viewed course is term-specific.
   const children = expanded && canExpand ? prereqTreeFor(graph, code) : null
 
+  const isCompleted = completed.has(code)
   const toggleLabel = translate(expanded ? "prereq:collapse" : "prereq:expand", { code })
 
   return (
@@ -124,6 +147,7 @@ function CourseNode({ code, note, ancestors, onOpenCourse }: CourseNodeProps) {
           accessibilityLabel={[
             code,
             course?.title,
+            isCompleted ? translate("prereq:completed") : undefined,
             note,
             state !== "expandable" ? badgeText(state) : undefined,
           ]
@@ -142,6 +166,12 @@ function CourseNode({ code, note, ancestors, onOpenCourse }: CourseNodeProps) {
             />
             {course && <Text size="xs" style={themed($dim)} text={`  ${course.title}`} />}
           </Text>
+          {isCompleted && (
+            <View style={$completedRow}>
+              <Ionicons name="checkmark-circle" size={13} color={colors.tint} />
+              <Text size="xxs" style={themed($metText)} tx="prereq:completed" />
+            </View>
+          )}
           {note && <Text size="xxs" style={themed($note)} text={note} />}
           {state !== "expandable" && (
             <Text size="xxs" style={themed($badge)} text={badgeText(state)} />
@@ -151,7 +181,12 @@ function CourseNode({ code, note, ancestors, onOpenCourse }: CourseNodeProps) {
 
       {children && (
         <View style={themed($nested)}>
-          <NodeView node={children} ancestors={[...ancestors, code]} onOpenCourse={onOpenCourse} />
+          <NodeView
+            node={children}
+            ancestors={[...ancestors, code]}
+            completed={completed}
+            onOpenCourse={onOpenCourse}
+          />
         </View>
       )}
     </View>
@@ -174,6 +209,10 @@ const $toggle: ThemedStyle<ViewStyle> = () => ({
 })
 
 const $courseText: ViewStyle = { flex: 1 }
+
+const $completedRow: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4 }
+
+const $metText: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.tint })
 
 const $code: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.tint })
 

@@ -1,4 +1,4 @@
-import { getCourse, getCourseVersion, getIndex, searchCourses } from "./catalog"
+import { getCourse, getCourseVersion, getIndex, searchCourses, unlockedCourses } from "./catalog"
 
 // Runs against the real generated data, so it also guards the build output.
 describe("catalog", () => {
@@ -43,5 +43,17 @@ describe("catalog", () => {
     expect(getCourse("COMP 1021")?.title).toBeTruthy()
     const version = getCourseVersion("COMP 1021", 99)
     expect(version?.description.length).toBeGreaterThan(0)
+  })
+
+  it("finds courses unlocked by completed ones, excluding those already taken", () => {
+    expect(unlockedCourses(new Set()).size).toBe(0)
+    const unlocked = unlockedCourses(new Set(["COMP 2011", "COMP 2711"]))
+    expect(unlocked.has("COMP 3711")).toBe(true)
+    expect(unlocked.has("COMP 2011")).toBe(false)
+    // Half of COMP 3711's requirement is not enough.
+    expect(unlockedCourses(new Set(["COMP 2011"])).has("COMP 3711")).toBe(false)
+    // And the filter composes with search.
+    const results = searchCourses({ text: "comp 37", only: unlocked })
+    expect(results.map((c) => c.code)).toContain("COMP 3711")
   })
 })
