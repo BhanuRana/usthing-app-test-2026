@@ -35,6 +35,7 @@ const en = {
     noResultsHeading: "No matching courses",
     noResultsContent: "Try a different search, or clear the filters.",
     clearFilters: "Clear filters",
+    clearSearch: "Clear search",
     unlocked: "Unlocked for me",
   },
   departmentPicker: {
@@ -51,6 +52,9 @@ const en = {
     none: "None yet",
   },
   course: {
+    meta: "{{credits}} credits · {{career}} · {{prefix}}",
+    undergraduate: "Undergraduate",
+    postgraduate: "Postgraduate",
     offeredIn: "Offered in",
     notOfferedIn: "Not offered in {{term}}. Showing {{shown}}.",
     description: "Description",

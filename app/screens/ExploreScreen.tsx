@@ -31,7 +31,10 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const { starred } = useStarred()
   const { completed } = useCompleted()
-  const [onlyUnlocked, setOnlyUnlocked] = useState(false)
+  const [unlockedChosen, setOnlyUnlocked] = useState(false)
+  // The chip only exists while something is completed; if the user un-completes everything,
+  // the filter switches itself off rather than leaving an invisible filter with 0 results.
+  const onlyUnlocked = unlockedChosen && completed.size > 0
   const unlocked = useMemo(
     () => (onlyUnlocked ? unlockedCourses(completed, term) : undefined),
     [onlyUnlocked, completed, term],
@@ -94,7 +97,7 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
       text ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Clear search"
+          accessibilityLabel={translate("explore:clearSearch")}
           onPress={() => setText("")}
           hitSlop={10}
           style={[props.style, $accessory]}

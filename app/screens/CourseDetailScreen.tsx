@@ -113,7 +113,13 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
           <Text
             size="xs"
             style={themed($dim)}
-            text={`${version.credits} credits · ${course.career === "UG" ? "Undergraduate" : "Postgraduate"} · ${course.prefix}`}
+            text={translate("course:meta", {
+              credits: version.credits,
+              career: translate(
+                course.career === "UG" ? "course:undergraduate" : "course:postgraduate",
+              ),
+              prefix: course.prefix,
+            })}
           />
           <View style={themed($completedToggle)}>
             <Chip
