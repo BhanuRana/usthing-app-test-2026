@@ -90,3 +90,6 @@ web-build/
 # Dependency Graph Visualizations
 app-dependency-graph.svg
 app-dependency-graph.png
+# Yarn Berry artifacts (project uses Yarn classic lockfile v1)
+.yarn/
+.yarnrc.yml
