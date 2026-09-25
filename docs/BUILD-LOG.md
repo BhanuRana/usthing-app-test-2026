@@ -69,3 +69,8 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 - Course page: a header card (badge, title, info pills, "Mark as completed" button), sections as cards with icons, a coloured eligibility banner, and tree group labels as pills.
 - My Courses: stats tiles. Department picker: badges.
 - 5 new Jest tests for highlighting (48 total). Maestro: `PrerequisiteCycle` now scrolls to the chain summary, since the taller cards moved it below the fold. `.maestro/screenshots.yaml` produces the README screenshots.
+
+**10 · Theme** (D15)
+- Navy/gold palettes for light and dark, `star` token, coral in place of blue among department hues.
+- Icon and splash redrawn in navy with a gold node (same graph geometry). iOS native project re-synced with `expo prebuild`.
+- README screenshots regenerated with `.maestro/screenshots.yaml` in both themes.

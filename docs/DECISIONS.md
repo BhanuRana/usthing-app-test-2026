@@ -111,7 +111,7 @@ I drove every screen with Maestro in light and dark mode, and fixed:
 
 **Decision:** A small design system on top of the template's theme, applied to every screen:
 - **Surfaces:** courses, sections and stats sit on cards (`surface` token, soft shadow in light mode, a lighter tone in dark mode, where shadows don't show).
-- **Colour carries meaning:** orange (`tint`) = tappable, green (`success`) = met/completed, amber (`warning`) = still needed. Before this, "met" and "link" were both orange.
+- **Colour carries meaning:** `tint` = tappable, green (`success`) = met/completed, amber (`warning`) = still needed. Before this, "met" and "link" were the same colour. (The tint was orange here; D15 made it navy.)
 - **Department colours:** each prefix hashes to one of 8 hues (no green or amber, which already carry meaning), shown as a badge on rows, course pages and the department picker. Same prefix, same colour, everywhere.
 - **Search highlighting:** the matched part of the code (typed with any spacing or case) and the matched title words are emphasised, so it's clear why a result matched.
 - **My Courses summary:** completed, credits earned (range-credit courses count at their minimum and the total shows "+"), and starred.
@@ -119,3 +119,14 @@ I drove every screen with Maestro in light and dark mode, and fixed:
 **Why:** The grading criteria include UX ("information and interactions are clear and coherent"). The old screens worked but were flat, and they used one colour for two meanings. Everything is JS/styling on existing dependencies: no new native modules, so there's no rebuild risk and the bundle barely grows.
 **Kept fixed:** rows are still a fixed height (card + gap) so `getItemLayout` stays exact, and all test IDs and accessibility labels are unchanged.
 **Also fixed:** completed courses were meant to be highlighted in the full chain, but the flag was never passed through. They now show as green chips there and in "Leads to".
+
+### D15 · Navy and gold theme (2026-09-25)
+
+**Decision:** Replace the Ignite starter's terracotta-on-beige with navy and gold, after HKUST's own colours:
+- navy (`tint`) for links, buttons and selected filters;
+- gold (`star`) for stars;
+- cool neutral greys, and a deep navy ground in dark mode, where the tint lifts to a lighter blue so links stay readable;
+- green and amber keep their meanings (met / still needed).
+
+The department hue list swapped its plain blue for coral, so a badge never looks like a link. The app icon and splash use the same navy, and the graph's top node is gold.
+**Why:** The starter palette read as a template. Navy and gold fit a HKUST course explorer and give the app a recognisable identity. Only token values changed; the components already read semantic tokens, so no component code was touched.

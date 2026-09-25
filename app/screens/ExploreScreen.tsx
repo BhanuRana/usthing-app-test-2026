@@ -206,7 +206,7 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
         extraData={extraData}
         getItemLayout={(_, index) => ({
           length: COURSE_ROW_HEIGHT,
-          offset: COURSE_ROW_HEIGHT * index,
+          offset: LIST_TOP_GAP + COURSE_ROW_HEIGHT * index,
           index,
         })}
         initialNumToRender={12}
@@ -271,11 +271,16 @@ const $chipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $lastChipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexWrap: "wrap",
   rowGap: spacing.xs,
-  paddingBottom: spacing.sm,
+  paddingBottom: spacing.xs,
 })
 
-// No top padding: getItemLayout offsets assume rows start at 0.
-const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingBottom: spacing.md })
+/** Room above the first card so its shadow isn't clipped; getItemLayout adds it to offsets. */
+const LIST_TOP_GAP = 6
+
+const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingTop: LIST_TOP_GAP,
+  paddingBottom: spacing.md,
+})
 
 const $empty: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.xl,

@@ -1,10 +1,10 @@
 /**
  * A stable accent colour per department, so the same prefix always looks the same across
  * the list, search results and course pages. Hues are categorical (no green or amber, which
- * mean "met" and "still needed" elsewhere), and each has a light and a dark variant.
+ * mean "met" and "still needed", and no plain blue, which is the tap colour), and each has a light and a dark variant.
  */
 const HUES = [
-  { light: "#3563B0", dark: "#9DB8F0" }, // blue
+  { light: "#C2553A", dark: "#F4A58E" }, // coral (not blue: navy is the tap colour)
   { light: "#11776F", dark: "#7FD1C7" }, // teal
   { light: "#7A4BB0", dark: "#C4A6EC" }, // purple
   { light: "#B0426B", dark: "#F0A3BF" }, // rose

@@ -80,7 +80,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
             <Ionicons
               name={isStarred ? "star" : "star-outline"}
               size={22}
-              color={isStarred ? colors.tint : colors.text}
+              color={isStarred ? colors.star : colors.text}
             />
           </Pressable>
         ) : undefined

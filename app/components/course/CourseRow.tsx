@@ -72,7 +72,7 @@ export const CourseRow = memo(function CourseRow({
             matchStyle={{ color: colors.tint }}
           />
           {completed && <Ionicons name="checkmark-circle" size={15} color={colors.success} />}
-          {starred && <Ionicons name="star" size={13} color={colors.tint} />}
+          {starred && <Ionicons name="star" size={13} color={colors.star} />}
         </View>
         <Highlighted
           segments={highlightWords(course.title, query)}

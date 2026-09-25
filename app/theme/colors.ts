@@ -1,38 +1,42 @@
+/**
+ * Navy and gold, after HKUST's own colours: navy marks anything you can tap, gold marks
+ * things you've picked out (stars, search matches), on cool, quiet greys.
+ */
 const palette = {
   neutral100: "#FFFFFF",
-  neutral200: "#F4F2F1",
-  neutral300: "#D7CEC9",
-  neutral400: "#B6ACA6",
-  neutral500: "#978F8A",
-  neutral600: "#564E4A",
-  neutral700: "#3C3836",
-  neutral800: "#191015",
+  neutral200: "#F4F6F9",
+  neutral300: "#E1E6ED",
+  neutral400: "#C3CCD8",
+  neutral500: "#8E9AAB",
+  neutral600: "#56657A",
+  neutral700: "#34425A",
+  neutral800: "#0F1C2E",
   neutral900: "#000000",
 
-  primary100: "#F4E0D9",
-  primary200: "#E8C1B4",
-  primary300: "#DDA28E",
-  primary400: "#D28468",
-  primary500: "#C76542",
-  primary600: "#A54F31",
+  primary100: "#E3EBF6",
+  primary200: "#C2D3EB",
+  primary300: "#8FAFD9",
+  primary400: "#4F7FC0",
+  primary500: "#1F4F91",
+  primary600: "#163A6B",
 
-  secondary100: "#DCDDE9",
-  secondary200: "#BCC0D6",
-  secondary300: "#9196B9",
-  secondary400: "#626894",
-  secondary500: "#41476E",
+  secondary100: "#DCE3EC",
+  secondary200: "#B9C6D8",
+  secondary300: "#8193AD",
+  secondary400: "#4E6280",
+  secondary500: "#2B3B55",
 
-  accent100: "#FFEED4",
-  accent200: "#FFE1B2",
-  accent300: "#FDD495",
-  accent400: "#FBC878",
-  accent500: "#FFBB50",
+  accent100: "#FBF3DC",
+  accent200: "#F5E4B0",
+  accent300: "#EBCF7A",
+  accent400: "#DDB649",
+  accent500: "#C99A1E",
 
-  angry100: "#F2D6CD",
-  angry500: "#C03403",
+  angry100: "#F6D8D3",
+  angry500: "#C0341D",
 
-  overlay20: "rgba(25, 16, 21, 0.2)",
-  overlay50: "rgba(25, 16, 21, 0.5)",
+  overlay20: "rgba(15, 28, 46, 0.2)",
+  overlay50: "rgba(15, 28, 46, 0.5)",
 } as const
 
 export const colors = {
@@ -63,7 +67,7 @@ export const colors = {
    */
   border: palette.neutral400,
   /**
-   * The main tinting color.
+   * The main tinting color: links, buttons, selected filters.
    */
   tint: palette.primary500,
   /**
@@ -89,24 +93,28 @@ export const colors = {
   /**
    * Recessed fills inside a card (e.g. the raw prerequisite text).
    */
-  surfaceAlt: "#EDE8E5",
+  surfaceAlt: "#EDF1F6",
   /**
    * A faint wash of the tint, behind selected or highlighted content.
    */
-  tintSoft: "rgba(199, 101, 66, 0.12)",
+  tintSoft: "rgba(31, 79, 145, 0.10)",
+  /**
+   * Gold: stars and other things the user has picked out.
+   */
+  star: palette.accent500,
   /**
    * Satisfied state: completed courses, met prerequisites. Kept apart from `tint`, which
    * marks things you can tap.
    */
-  success: "#2E7D4F",
-  successSoft: "rgba(46, 125, 79, 0.12)",
+  success: "#1E8455",
+  successSoft: "rgba(30, 132, 85, 0.12)",
   /**
    * Something still to do: unmet prerequisites.
    */
-  warning: "#9A5B00",
-  warningSoft: "rgba(214, 140, 20, 0.14)",
+  warning: "#A86400",
+  warningSoft: "rgba(221, 150, 30, 0.15)",
   /**
    * Card shadow (light mode only; dark mode separates surfaces by tone).
    */
-  shadow: "rgba(60, 40, 30, 0.10)",
+  shadow: "rgba(15, 28, 46, 0.08)",
 } as const

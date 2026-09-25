@@ -27,7 +27,7 @@ A React Native + Expo app for browsing HKUST courses and understanding their pre
   - Mark courses as **completed** to see whether you meet a course's prerequisites ("Still needed: one of COMP 2711 / MATH 2343").
   - Filter Explore to **"Unlocked for me"**: everything you can take next.
   - A summary of courses completed, credits earned and courses starred.
-- A consistent visual language ([D14](docs/DECISIONS.md#d14--visual-design-pass-2026-09-25)): cards, green for "met", amber for "still needed", orange for anything tappable. Light/dark mode, VoiceOver labels on interactive elements, and state that persists across launches.
+- A consistent visual language ([D14](docs/DECISIONS.md#d14--visual-design-pass-2026-09-25)): cards, navy for anything tappable, gold for stars, green for "met", amber for "still needed" ([D15](docs/DECISIONS.md#d15--navy-and-gold-theme-2026-09-25)). Light/dark mode, VoiceOver labels on interactive elements, and state that persists across launches.
 
 ---
 
