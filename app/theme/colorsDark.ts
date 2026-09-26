@@ -60,4 +60,12 @@ export const colors = {
   warning: "#F2B45C",
   warningSoft: "rgba(242, 180, 92, 0.14)",
   shadow: "rgba(0, 0, 0, 0)",
+  hero: "#16263D",
+  onHero: "#FFFFFF",
+  onHeroDim: "rgba(255, 255, 255, 0.68)",
+  heroRaised: "rgba(255, 255, 255, 0.10)",
+  heroLine: "rgba(255, 255, 255, 0.06)",
+  heroAccent: palette.accent200,
+  heroField: "rgba(255, 255, 255, 0.07)",
+  heroSuccess: "#6FD39F",
 } as const

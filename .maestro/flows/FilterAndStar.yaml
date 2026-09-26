@@ -1,18 +1,25 @@
 #flow: FilterAndStar
 #intent:
-# Filter by department + career, star a course, and find it in My Courses.
+# Filter by department + level in the filter sheet, star a course, and find it in My Courses.
 appId: ${MAESTRO_APP_ID}
 onFlowStart:
   - runFlow: ../shared/_OnFlowStart.yaml
 ---
+- tapOn:
+    id: 'filters-button'
 - tapOn: 'All terms'
-- tapOn: 'All departments'
+- tapOn:
+    id: 'filter-department'
 - tapOn: '.*Filter departments.*'
 - inputText: 'COMP'
 - tapOn:
     id: 'department-COMP'
-- tapOn: 'UG'
+- tapOn: 'Undergraduate'
+- assertVisible: 'Show 72 courses'
+- tapOn:
+    id: 'filters-apply'
 - assertVisible: 'Clear filters'
+- assertVisible: 'Filters, 2 active'
 - assertNotVisible:
     id: 'course-row-ACCT 1010'
 - tapOn:

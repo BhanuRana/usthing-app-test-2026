@@ -117,4 +117,16 @@ export const colors = {
    * Card shadow (light mode only; dark mode separates surfaces by tone).
    */
   shadow: "rgba(15, 28, 46, 0.08)",
+  /**
+   * The navy header band at the top of each screen, and what sits on it.
+   */
+  hero: palette.primary600,
+  onHero: "#FFFFFF",
+  onHeroDim: "rgba(255, 255, 255, 0.72)",
+  /** Translucent fills on the band: round buttons, pills, rings. */
+  heroRaised: "rgba(255, 255, 255, 0.14)",
+  heroLine: "rgba(255, 255, 255, 0.08)",
+  heroAccent: palette.accent300,
+  heroField: palette.neutral100,
+  heroSuccess: "#6FD39F",
 } as const

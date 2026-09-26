@@ -1,14 +1,20 @@
 import { ComponentProps, ReactNode, useCallback, useMemo, useState } from "react"
-import { Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
+import { Pressable, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import Animated, {
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Chip } from "@/components/course/Chip"
-import { DeptBadge } from "@/components/course/DeptBadge"
+import { HeroButton, HeroHeader, HeroPill } from "@/components/course/HeroHeader"
 import { LinkedCodesText } from "@/components/course/LinkedCodesText"
 import { PrereqTree } from "@/components/course/PrereqTree"
 import { $card } from "@/components/course/styles"
 import { EmptyState } from "@/components/EmptyState"
-import { Header } from "@/components/Header"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { getCourse, getCourseVersion, getIndex, getPrereqGraph } from "@/data/catalog"
@@ -62,36 +68,44 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
 
   const isStarred = starred.has(code)
   const isCompleted = completed.has(code)
+
+  // The code fades into the fixed bar once the big one in the band has scrolled under it.
+  const { top } = useSafeAreaInsets()
+  const scrollY = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y
+  })
+  const $barTitleAnimated = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [30, 70], [0, 1], "clamp"),
+  }))
+
   const header = (
-    <Header
-      title={code}
-      leftIcon="back"
-      onLeftPress={() => navigation.goBack()}
-      RightActionComponent={
-        course ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={translate(isStarred ? "course:unstar" : "course:star")}
-            accessibilityState={{ selected: isStarred }}
-            onPress={() => toggle(code)}
-            hitSlop={12}
-            style={themed($starButton)}
-          >
-            <Ionicons
-              name={isStarred ? "star" : "star-outline"}
-              size={22}
-              color={isStarred ? colors.star : colors.text}
-            />
-          </Pressable>
-        ) : undefined
-      }
-      safeAreaEdges={["top"]}
-    />
+    <View style={[themed($bar), { paddingTop: top }]}>
+      <HeroButton
+        icon="chevron-back"
+        accessibilityLabel={translate("common:back")}
+        onPress={() => navigation.goBack()}
+      />
+      <Animated.View style={[$barTitle, course ? $barTitleAnimated : undefined]}>
+        <Text weight="semiBold" style={themed($barTitleText)} text={code} numberOfLines={1} />
+      </Animated.View>
+      {course ? (
+        <HeroButton
+          icon={isStarred ? "star" : "star-outline"}
+          iconColor={isStarred ? colors.heroAccent : undefined}
+          accessibilityLabel={translate(isStarred ? "course:unstar" : "course:star")}
+          accessibilityState={{ selected: isStarred }}
+          onPress={() => toggle(code)}
+        />
+      ) : (
+        <View style={$barSpacer} />
+      )}
+    </View>
   )
 
   if (!course || !version) {
     return (
-      <Screen preset="fixed" contentContainerStyle={$flex}>
+      <Screen preset="fixed" systemBarStyle="light" contentContainerStyle={$flex}>
         {header}
         <EmptyState heading={code} contentTx="course:notFound" style={themed($notFound)} />
       </Screen>
@@ -102,31 +116,36 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
     requestedTerm !== undefined && requestedTerm !== term && !course.terms.includes(requestedTerm)
 
   return (
-    // Header stays fixed; only the content scrolls, so Back and Star are always reachable.
-    <Screen preset="fixed" contentContainerStyle={$flex}>
+    // The bar stays fixed; only the content scrolls, so Back and Star are always reachable.
+    <Screen preset="fixed" systemBarStyle="light" contentContainerStyle={$flex}>
       {header}
-      <ScrollView
+      <Animated.ScrollView
         style={$flex}
         contentContainerStyle={themed($content)}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         testID="course-detail-scroll"
       >
-        <View style={themed([$card, $hero])}>
-          <View style={$heroTop}>
-            <DeptBadge prefix={course.prefix} size={52} />
-            <Text preset="subheading" style={$flex} text={version.title} />
-          </View>
+        <HeroHeader
+          safeTop={false}
+          overscroll
+          eyebrow={course.prefix}
+          title={code}
+          style={themed($band)}
+        >
+          <Text size="md" weight="medium" style={themed($courseTitle)} text={version.title} />
           <View style={$wrap}>
-            <InfoPill
+            <HeroPill
               icon="ribbon-outline"
               text={translate("course:credits", { credits: version.credits })}
             />
-            <InfoPill
+            <HeroPill
               icon="school-outline"
               text={translate(
                 course.career === "UG" ? "course:undergraduate" : "course:postgraduate",
               )}
             />
-            <InfoPill icon="business-outline" text={course.prefix} />
+            <HeroPill icon="calendar-outline" text={term === undefined ? "" : terms[term].name} />
           </View>
           <Pressable
             accessibilityRole="button"
@@ -142,16 +161,16 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
             <Ionicons
               name={isCompleted ? "checkmark-circle" : "add-circle-outline"}
               size={20}
-              color={isCompleted ? colors.success : colors.tint}
+              color={isCompleted ? colors.heroSuccess : colors.hero}
             />
             <Text
               weight="semiBold"
               size="xs"
-              style={{ color: isCompleted ? colors.success : colors.tint }}
+              style={{ color: isCompleted ? colors.onHero : colors.hero }}
               tx={isCompleted ? "course:completed" : "course:markCompleted"}
             />
           </Pressable>
-        </View>
+        </HeroHeader>
 
         <Section icon="calendar-outline" title={translate("course:offeredIn")}>
           <View style={$wrap}>
@@ -281,7 +300,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
             ))}
           </Section>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   )
 }
@@ -315,19 +334,6 @@ function Section({
         </View>
       </View>
       <View style={$sectionBody}>{children}</View>
-    </View>
-  )
-}
-
-function InfoPill({ icon, text }: { icon: IconName; text: string }) {
-  const {
-    themed,
-    theme: { colors },
-  } = useAppTheme()
-  return (
-    <View style={themed($infoPill)}>
-      <Ionicons name={icon} size={13} color={colors.textDim} />
-      <Text size="xxs" weight="medium" style={themed($dim)} text={text} />
     </View>
   )
 }
@@ -409,41 +415,46 @@ const $flex: ViewStyle = { flex: 1 }
 
 const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingBottom: spacing.xxl })
 
-const $starButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingHorizontal: spacing.md })
+const $bar: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.xs,
+  backgroundColor: colors.hero,
+  zIndex: 1,
+})
 
-const $hero: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginHorizontal: spacing.md,
-  marginTop: spacing.xs,
-  padding: spacing.md,
+const $barTitle: ViewStyle = { flex: 1, alignItems: "center" }
+
+const $barTitleText: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.onHero })
+
+const $barSpacer: ViewStyle = { width: 44 }
+
+const $band: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingTop: spacing.xxs,
+  paddingBottom: spacing.lg,
   gap: spacing.sm,
 })
 
-const $heroTop: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 14 }
-
-const $infoPill: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 4,
-  paddingHorizontal: spacing.xs,
-  paddingVertical: 3,
-  borderRadius: 8,
-  backgroundColor: colors.surfaceAlt,
+const $courseTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.onHero,
+  marginTop: -4,
 })
 
-const $completeButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
+const $completeButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
   gap: 6,
-  height: 44,
-  borderRadius: 12,
-  borderWidth: 1.5,
-  borderColor: colors.tint,
+  height: 46,
+  marginTop: spacing.xxs,
+  borderRadius: 14,
+  backgroundColor: colors.onHero,
 })
 
 const $completeButtonDone: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderColor: colors.transparent,
-  backgroundColor: colors.successSoft,
+  backgroundColor: colors.heroRaised,
 })
 
 const $pressed: ViewStyle = { opacity: 0.7 }

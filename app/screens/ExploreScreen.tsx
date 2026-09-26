@@ -1,10 +1,11 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react"
-import { FlatList, Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
+import { FlatList, Keyboard, Pressable, ScrollView, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 
 import { Chip } from "@/components/course/Chip"
 import { COURSE_ROW_HEIGHT, CourseRow } from "@/components/course/CourseRow"
-import { DepartmentPicker } from "@/components/course/DepartmentPicker"
+import { CourseFilters, FilterSheet } from "@/components/course/FilterSheet"
+import { HeroButton, HeroHeader } from "@/components/course/HeroHeader"
 import { EmptyState } from "@/components/EmptyState"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -22,18 +23,18 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
     themed,
     theme: { colors },
   } = useAppTheme()
-  const { terms, departments, courses } = getIndex()
+  const { terms } = getIndex()
 
   const [text, setText] = useState("")
   const [term, setTerm] = useSelectedTerm()
   const [prefix, setPrefix] = useState<string>()
   const [career, setCareer] = useState<Career>()
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const { starred } = useStarred()
   const { completed } = useCompleted()
   const [unlockedChosen, setOnlyUnlocked] = useState(false)
-  // The chip only exists while something is completed; if the user un-completes everything,
-  // the filter switches itself off rather than leaving an invisible filter with 0 results.
+  // The filter only exists while something is completed; if the user un-completes everything,
+  // it switches itself off rather than leaving an invisible filter with 0 results.
   const onlyUnlocked = unlockedChosen && completed.size > 0
   const unlocked = useMemo(
     () => (onlyUnlocked ? unlockedCourses(completed, term) : undefined),
@@ -48,17 +49,6 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
     [query, term, prefix, career, unlocked],
   )
 
-  // Department counts respect the other filters, so the picker never offers a dead end silently.
-  const departmentCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const c of courses) {
-      if (term !== undefined && !c.terms.includes(term)) continue
-      if (career && c.career !== career) continue
-      counts.set(c.prefix, (counts.get(c.prefix) ?? 0) + 1)
-    }
-    return counts
-  }, [courses, term, career])
-
   const listRef = useRef<FlatList<CourseSummary>>(null)
   useEffect(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: false })
@@ -69,7 +59,29 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
     [navigation, term],
   )
 
-  const hasFilters = !!text || !!prefix || !!career || onlyUnlocked
+  const activeFilterCount = [prefix, career, onlyUnlocked || undefined].filter(Boolean).length
+
+  const countFor = useCallback(
+    (f: CourseFilters) =>
+      searchCourses({
+        text: query,
+        term: f.term,
+        prefix: f.prefix,
+        career: f.career,
+        only: f.onlyUnlocked && completed.size > 0 ? unlockedCourses(completed, f.term) : undefined,
+      }).length,
+    [query, completed],
+  )
+  const applyFilters = (f: CourseFilters) => {
+    setTerm(f.term)
+    setPrefix(f.prefix)
+    setCareer(f.career)
+    setOnlyUnlocked(f.onlyUnlocked)
+  }
+  const openFilters = () => {
+    Keyboard.dismiss()
+    setSheetOpen(true)
+  }
   const clearFilters = () => {
     setText("")
     setPrefix(undefined)
@@ -117,20 +129,29 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
   )
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$flex}>
-      <View style={themed($header)}>
-        <View>
-          <Text preset="heading" size="xl" tx="explore:title" />
-          <Text
-            size="xs"
-            style={themed($dim)}
-            text={`${translate("explore:count", {
-              count: results.length,
-              n: results.length.toLocaleString("en-US"),
-            })} · ${term === undefined ? translate("explore:inAllTerms") : terms[term].name}`}
+    <Screen preset="fixed" systemBarStyle="light" contentContainerStyle={$flex}>
+      <HeroHeader
+        eyebrow={`HKUST · ${term === undefined ? translate("explore:allTerms") : terms[term].name}`}
+        title={translate("explore:title")}
+        subtitle={translate("explore:count", {
+          count: results.length,
+          n: results.length.toLocaleString("en-US"),
+        })}
+        right={
+          <HeroButton
+            icon="options-outline"
+            active={activeFilterCount > 0}
+            badge={activeFilterCount}
+            accessibilityLabel={
+              activeFilterCount
+                ? translate("explore:filtersActive", { count: activeFilterCount })
+                : translate("explore:filters")
+            }
+            testID="filters-button"
+            onPress={openFilters}
           />
-        </View>
-
+        }
+      >
         <TextField
           value={text}
           onChangeText={setText}
@@ -145,48 +166,45 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
           RightAccessory={ClearButton}
           inputWrapperStyle={themed($search)}
         />
-      </View>
+      </HeroHeader>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={themed($chipRow)}
-        style={$chipScroller}
-      >
-        <Chip
-          label={translate("explore:allTerms")}
-          selected={term === undefined}
-          onPress={() => setTerm(undefined)}
-        />
-        {terms.map((t, i) => (
-          <Chip key={t.code} label={t.name} selected={term === i} onPress={() => setTerm(i)} />
-        ))}
-      </ScrollView>
-
-      <View style={themed([$chipRow, $lastChipRow])}>
-        <Chip
-          label={prefix ?? translate("explore:allDepartments")}
-          selected={!!prefix}
-          icon="chevron-down"
-          onPress={() => setPickerOpen(true)}
-        />
-        {(["UG", "PG"] as const).map((c) => (
-          <Chip
-            key={c}
-            label={c}
-            selected={career === c}
-            onPress={() => setCareer(career === c ? undefined : c)}
-          />
-        ))}
-        {completed.size > 0 && (
-          <Chip
-            label={translate("explore:unlocked")}
-            selected={onlyUnlocked}
-            icon="lock-open-outline"
-            onPress={() => setOnlyUnlocked((v) => !v)}
-          />
-        )}
-        {hasFilters && (
+      {activeFilterCount > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={themed($chipRow)}
+          style={$chipScroller}
+        >
+          {prefix && (
+            <Chip
+              label={prefix}
+              selected
+              icon="close"
+              accessibilityLabel={translate("explore:remove", { label: prefix })}
+              onPress={() => setPrefix(undefined)}
+            />
+          )}
+          {career && (
+            <Chip
+              label={translate(career === "UG" ? "course:undergraduate" : "course:postgraduate")}
+              selected
+              icon="close"
+              accessibilityLabel={translate("explore:remove", { label: career })}
+              onPress={() => setCareer(undefined)}
+            />
+          )}
+          {onlyUnlocked && (
+            <Chip
+              label={translate("explore:unlocked")}
+              selected
+              icon="close"
+              accessibilityLabel={translate("explore:remove", {
+                label: translate("explore:unlocked"),
+              })}
+              onPress={() => setOnlyUnlocked(false)}
+            />
+          )}
           <Pressable accessibilityRole="button" onPress={clearFilters} hitSlop={8}>
             <Text
               size="xs"
@@ -195,8 +213,8 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
               tx="explore:clearFilters"
             />
           </Pressable>
-        )}
-      </View>
+        </ScrollView>
+      )}
 
       <FlatList
         ref={listRef}
@@ -227,13 +245,14 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
         }
       />
 
-      <DepartmentPicker
-        visible={pickerOpen}
-        departments={departments}
-        counts={departmentCounts}
-        selected={prefix}
-        onSelect={setPrefix}
-        onClose={() => setPickerOpen(false)}
+      <FilterSheet
+        visible={sheetOpen}
+        value={{ term, prefix, career, onlyUnlocked }}
+        canFilterUnlocked={completed.size > 0}
+        countFor={countFor}
+        defaultTerm={0}
+        onApply={applyFilters}
+        onClose={() => setSheetOpen(false)}
       />
     </Screen>
   )
@@ -241,19 +260,11 @@ export function ExploreScreen({ navigation }: TabScreenProps<"Explore">) {
 
 const $flex: ViewStyle = { flex: 1 }
 
-const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.md,
-  paddingTop: spacing.sm,
-  gap: spacing.sm,
-})
-
-const $dim: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim })
-
 const $search: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderRadius: 14,
   alignItems: "center",
-  backgroundColor: colors.surface,
-  borderColor: colors.separator,
+  backgroundColor: colors.heroField,
+  borderColor: colors.transparent,
 })
 
 const $accessory: ViewStyle = { justifyContent: "center", alignSelf: "center" }
@@ -266,16 +277,11 @@ const $chipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.xs,
   paddingHorizontal: spacing.md,
   paddingTop: spacing.sm,
-})
-
-const $lastChipRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexWrap: "wrap",
-  rowGap: spacing.xs,
   paddingBottom: spacing.xs,
 })
 
 /** Room above the first card so its shadow isn't clipped; getItemLayout adds it to offsets. */
-const LIST_TOP_GAP = 6
+const LIST_TOP_GAP = 12
 
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: LIST_TOP_GAP,

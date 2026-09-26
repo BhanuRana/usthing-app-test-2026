@@ -30,7 +30,11 @@ onFlowStart:
 - assertVisible: 'You meet the prerequisites'
 - takeScreenshot: completion-2-met
 - tapOn: 'Back'
+- tapOn:
+    id: 'filters-button'
 - tapOn: 'Unlocked for me'
+- tapOn:
+    id: 'filters-apply'
 - tapOn: '.*Search code or title.*'
 - eraseText: 20
 - inputText: 'COMP 37'

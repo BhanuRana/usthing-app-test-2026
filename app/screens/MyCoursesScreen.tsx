@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react"
 import { SectionList, TextStyle, View, ViewStyle } from "react-native"
 
 import { CourseRow } from "@/components/course/CourseRow"
-import { $card } from "@/components/course/styles"
+import { HeroHeader } from "@/components/course/HeroHeader"
 import { EmptyState } from "@/components/EmptyState"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -58,8 +58,22 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
   )
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$flex}>
-      <Text preset="heading" size="xl" tx="myCourses:title" style={themed($title)} />
+    <Screen preset="fixed" systemBarStyle="light" contentContainerStyle={$flex}>
+      <HeroHeader eyebrow="HKUST" title={translate("myCourses:title")}>
+        <View style={themed($stats)}>
+          {stats.map((s) => (
+            <View
+              key={s.key}
+              style={themed($stat)}
+              accessible
+              accessibilityLabel={`${s.value} ${translate(s.label)}`}
+            >
+              <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
+              <Text size="xxs" style={themed($statLabel)} tx={s.label} />
+            </View>
+          ))}
+        </View>
+      </HeroHeader>
       {isEmpty ? (
         <EmptyState
           headingTx="myCourses:emptyHeading"
@@ -70,21 +84,6 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
         <SectionList
           sections={sections}
           keyExtractor={(c, i) => `${c.code}-${i}`}
-          ListHeaderComponent={
-            <View style={themed($stats)}>
-              {stats.map((s) => (
-                <View
-                  key={s.key}
-                  style={themed([$card, $stat])}
-                  accessible
-                  accessibilityLabel={`${s.value} ${translate(s.label)}`}
-                >
-                  <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
-                  <Text size="xxs" style={themed($statLabel)} tx={s.label} />
-                </View>
-              ))}
-            </View>
-          }
           renderItem={({ item }) => (
             <CourseRow
               course={item}
@@ -119,12 +118,6 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
 
 const $flex: ViewStyle = { flex: 1 }
 
-const $title: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.md,
-  paddingTop: spacing.sm,
-  paddingBottom: spacing.xs,
-})
-
 const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.background,
   paddingHorizontal: spacing.md,
@@ -135,19 +128,19 @@ const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $stats: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.xs,
-  paddingHorizontal: spacing.md,
-  paddingTop: spacing.xs,
 })
 
-const $stat: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $stat: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
   paddingVertical: spacing.sm,
   paddingHorizontal: spacing.sm,
+  borderRadius: 16,
+  backgroundColor: colors.heroRaised,
 })
 
-const $statValue: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.tint })
+const $statValue: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.onHero })
 
-const $statLabel: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim })
+const $statLabel: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.onHeroDim })
 
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({ paddingBottom: spacing.md })
 
