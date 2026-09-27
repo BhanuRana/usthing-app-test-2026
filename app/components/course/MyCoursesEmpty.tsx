@@ -1,4 +1,3 @@
-import { ComponentProps } from "react"
 import { Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import Svg, { Circle, G, Path, Rect } from "react-native-svg"
@@ -10,7 +9,7 @@ import type { ThemedStyle } from "@/theme/types"
 /**
  * My Courses before anything is starred or completed: an illustration in the app's own
  * language (course cards, a star, a tick, a dashed route to a gold node, as in the icon),
- * what the screen is for, how to fill it, and a way to start.
+ * one line on how to fill the screen, and a way to start.
  */
 export function MyCoursesEmpty({ onExplore }: { onExplore: () => void }) {
   const {
@@ -31,21 +30,6 @@ export function MyCoursesEmpty({ onExplore }: { onExplore: () => void }) {
         <Text size="xs" style={themed([$dim, $center])} tx="myCourses:emptyContent" />
       </View>
 
-      <View style={$tips}>
-        <Tip
-          icon="star"
-          color={colors.star}
-          title="myCourses:emptyStar"
-          hint="myCourses:emptyStarHint"
-        />
-        <Tip
-          icon="checkmark-circle"
-          color={colors.success}
-          title="myCourses:emptyComplete"
-          hint="myCourses:emptyCompleteHint"
-        />
-      </View>
-
       <Pressable
         accessibilityRole="button"
         testID="empty-explore"
@@ -60,26 +44,6 @@ export function MyCoursesEmpty({ onExplore }: { onExplore: () => void }) {
         />
       </Pressable>
     </ScrollView>
-  )
-}
-
-function Tip(props: {
-  icon: ComponentProps<typeof Ionicons>["name"]
-  color: string
-  title: "myCourses:emptyStar" | "myCourses:emptyComplete"
-  hint: "myCourses:emptyStarHint" | "myCourses:emptyCompleteHint"
-}) {
-  const { themed } = useAppTheme()
-  return (
-    <View style={themed($tip)}>
-      <View style={[$tipIcon, { backgroundColor: `${props.color}1F` }]}>
-        <Ionicons name={props.icon} size={18} color={props.color} />
-      </View>
-      <View style={$grow}>
-        <Text size="xs" weight="semiBold" tx={props.title} />
-        <Text size="xxs" style={themed($dim)} tx={props.hint} />
-      </View>
-    </View>
   )
 }
 
@@ -165,7 +129,6 @@ function Illustration() {
   )
 }
 
-const $grow: ViewStyle = { flex: 1 }
 const $center: TextStyle = { textAlign: "center" }
 const $pressed: ViewStyle = { opacity: 0.8 }
 
@@ -183,27 +146,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $copy: ViewStyle = { gap: 6, alignItems: "center" }
 
 const $dim: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim })
-
-const $tips: ViewStyle = { alignSelf: "stretch", gap: 8 }
-
-const $tip: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  gap: spacing.sm,
-  padding: spacing.sm,
-  borderRadius: 14,
-  backgroundColor: colors.surface,
-  borderWidth: 1,
-  borderColor: colors.separator,
-})
-
-const $tipIcon: ViewStyle = {
-  width: 34,
-  height: 34,
-  borderRadius: 17,
-  alignItems: "center",
-  justifyContent: "center",
-}
 
 const $button: ThemedStyle<ViewStyle> = ({ colors }) => ({
   flexDirection: "row",

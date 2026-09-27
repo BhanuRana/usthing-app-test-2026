@@ -78,11 +78,7 @@ const en = {
     completed: "Completed",
     emptyHeading: "Your plan starts here",
     emptyContent:
-      "Save the courses you're aiming for and tick off the ones you've done. We'll show what you can take next, and the path to get there.",
-    emptyStar: "Star a course",
-    emptyStarHint: "Tap ☆ on any course page to keep it here",
-    emptyComplete: "Mark what you've completed",
-    emptyCompleteHint: "Unlocks eligibility checks and your path",
+      "Star courses you want and mark the ones you've done to see what you can take next.",
     emptyAction: "Explore courses",
     none: "None yet",
     statCompleted: "Completed",
