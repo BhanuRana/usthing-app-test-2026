@@ -13,12 +13,13 @@ import { Chip } from "@/components/course/Chip"
 import { HeroButton, HeroHeader, HeroPill } from "@/components/course/HeroHeader"
 import { LinkedCodesText } from "@/components/course/LinkedCodesText"
 import { PrereqTree } from "@/components/course/PrereqTree"
+import { StarPrompt } from "@/components/course/StarPrompt"
 import { $card } from "@/components/course/styles"
 import { EmptyState } from "@/components/EmptyState"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { getCourse, getCourseVersion, getIndex, getPrereqGraph } from "@/data/catalog"
-import { evaluate, missingRequirements } from "@/data/prereq/evaluate"
+import { evaluate, missingGroups, missingRequirements } from "@/data/prereq/evaluate"
 import { prereqTreeFor, prerequisiteChain, unlockedBy } from "@/data/prereq/traverse"
 import type { PrereqNode } from "@/data/types"
 import { translate } from "@/i18n/translate"
@@ -35,7 +36,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   } = useAppTheme()
   const { terms } = getIndex()
   const course = getCourse(code)
-  const { starred, toggle } = useStarred()
+  const { starred, toggle, add: addStarred } = useStarred()
   const { completed, toggle: toggleCompleted } = useCompleted()
 
   // Show the term the user was browsing if the course runs then, otherwise its newest term.
@@ -69,6 +70,18 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   const isStarred = starred.has(code)
   const isCompleted = completed.has(code)
 
+  // Starring a course you can't take yet asks whether to star its missing prerequisites too.
+  // Unstarring, met or only-unverifiable prerequisites, and completed courses skip the prompt.
+  const [starPromptOpen, setStarPromptOpen] = useState(false)
+  const missing = useMemo(
+    () => (tree && !isCompleted ? missingGroups(tree, completed) : []),
+    [tree, completed, isCompleted],
+  )
+  const onStarPress = () => {
+    if (!isStarred && missing.length > 0) setStarPromptOpen(true)
+    else toggle(code)
+  }
+
   // The code fades into the fixed bar once the big one in the band has scrolled under it.
   const { top } = useSafeAreaInsets()
   const scrollY = useSharedValue(0)
@@ -95,7 +108,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
           iconColor={isStarred ? colors.heroAccent : undefined}
           accessibilityLabel={translate(isStarred ? "course:unstar" : "course:star")}
           accessibilityState={{ selected: isStarred }}
-          onPress={() => toggle(code)}
+          onPress={onStarPress}
         />
       ) : (
         <View style={$barSpacer} />
@@ -301,6 +314,15 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
           </Section>
         )}
       </Animated.ScrollView>
+
+      <StarPrompt
+        visible={starPromptOpen}
+        code={code}
+        groups={missing}
+        starred={starred}
+        onConfirm={addStarred}
+        onClose={() => setStarPromptOpen(false)}
+      />
     </Screen>
   )
 }

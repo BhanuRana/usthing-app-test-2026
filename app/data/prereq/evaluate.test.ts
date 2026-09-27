@@ -1,5 +1,5 @@
 import type { PrereqNode } from "../types"
-import { evaluate, missingRequirements } from "./evaluate"
+import { evaluate, missingGroups, missingRequirements } from "./evaluate"
 
 const c = (code: string): PrereqNode => ({ kind: "course", code })
 const t = (text: string): PrereqNode => ({ kind: "text", text })
@@ -52,5 +52,62 @@ describe("missingRequirements", () => {
   it("is empty when met or only unverifiable", () => {
     expect(missingRequirements(comp3711, new Set(["COMP 2011", "COMP 2711"]))).toEqual([])
     expect(missingRequirements(t("MSc status"), new Set())).toEqual([])
+  })
+})
+
+describe("missingGroups", () => {
+  it("splits required courses from pick-one groups", () => {
+    expect(missingGroups(comp3711, new Set(["COMP 2011"]))).toEqual([
+      { kind: "any", options: [["COMP 2711"], ["COMP 2711H"], ["MATH 2343"]] },
+    ])
+    expect(missingGroups(all(c("MATH 2111"), c("COMP 2011")), new Set(["COMP 2011"]))).toEqual([
+      { kind: "all", code: "MATH 2111" },
+    ])
+  })
+
+  it("keeps an AND inside an OR together as one option", () => {
+    const tree = any(c("COMP 2011"), all(c("COMP 1021"), c("COMP 1022P")))
+    expect(missingGroups(tree, new Set())).toEqual([
+      { kind: "any", options: [["COMP 2011"], ["COMP 1021", "COMP 1022P"]] },
+    ])
+    // Half of that pair done: the option shrinks to what's left.
+    expect(missingGroups(tree, new Set(["COMP 1021"]))).toEqual([
+      { kind: "any", options: [["COMP 2011"], ["COMP 1022P"]] },
+    ])
+  })
+
+  it("flattens nested ORs", () => {
+    const tree = all(any(c("MATH 1012"), any(c("MATH 1013"), c("MATH 1014"))), c("PHYS 1111"))
+    expect(missingGroups(tree, new Set())).toEqual([
+      { kind: "any", options: [["MATH 1012"], ["MATH 1013"], ["MATH 1014"]] },
+      { kind: "all", code: "PHYS 1111" },
+    ])
+  })
+
+  it("leaves out an OR that free text might already satisfy", () => {
+    // HKDSE can't be checked, so that group is "unknown", not missing; PHYS 1111 still is.
+    const tree = all(any(t("HKDSE"), c("MATH 1012")), c("PHYS 1111"))
+    expect(missingGroups(tree, new Set())).toEqual([{ kind: "all", code: "PHYS 1111" }])
+  })
+
+  it("lists a course named twice only once", () => {
+    // LANG 3021: LANG 2010 (for DSCT only) OR LANG 2030 OR LANG 2010 (for all others)
+    expect(missingGroups(any(c("LANG 2010"), c("LANG 2030"), c("LANG 2010")), new Set())).toEqual([
+      { kind: "any", options: [["LANG 2010"], ["LANG 2030"]] },
+    ])
+    // SCIE 3500 requires SCIE 2500 twice, once with a note.
+    expect(missingGroups(all(c("SCIE 2500"), c("SCIE 2500"), c("CHEM 3550")), new Set())).toEqual([
+      { kind: "all", code: "SCIE 2500" },
+      { kind: "all", code: "CHEM 3550" },
+    ])
+    // A group that a required course already satisfies adds nothing.
+    expect(
+      missingGroups(all(c("MATH 2111"), any(c("MATH 2111"), c("MATH 2121"))), new Set()),
+    ).toEqual([{ kind: "all", code: "MATH 2111" }])
+  })
+
+  it("is empty when met or only unverifiable", () => {
+    expect(missingGroups(comp3711, new Set(["COMP 2011", "COMP 2711"]))).toEqual([])
+    expect(missingGroups(any(t("HKDSE"), c("PHYS 1111")), new Set())).toEqual([])
   })
 })

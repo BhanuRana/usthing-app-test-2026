@@ -30,13 +30,18 @@ function useCodeSet(key: string) {
     [codes, setList],
   )
 
-  return [codes, toggle] as const
+  const add = useCallback(
+    (more: string[]) => setList([...new Set([...codes, ...more])].sort()),
+    [codes, setList],
+  )
+
+  return [codes, toggle, add] as const
 }
 
 /** Courses the user wants quick access to. */
 export function useStarred() {
-  const [starred, toggle] = useCodeSet(STARRED_KEY)
-  return { starred, toggle }
+  const [starred, toggle, add] = useCodeSet(STARRED_KEY)
+  return { starred, toggle, add }
 }
 
 /** Courses the user has passed; drives prerequisite checks and the "Unlocked" filter. */

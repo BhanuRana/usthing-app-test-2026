@@ -67,3 +67,97 @@ function describe(node: PrereqNode): string {
       return `(${node.children.map(describe).join(node.kind === "all" ? " + " : " / ")})`
   }
 }
+
+/**
+ * What is still missing, as course codes the user could act on (e.g. star them):
+ *   - `all`: one course that is required outright;
+ *   - `any`: pick one of `options`, each a list of courses taken together, so
+ *     one of COMP 2011 / (COMP 1021 + COMP 1022P) -> options [[COMP 2011], [COMP 1021, COMP 1022P]].
+ * Nested ORs flatten into their parent's options. Where an option itself contains an OR, its
+ * first way of being satisfied stands in for it. Free text isn't actionable and is left out,
+ * as are courses already completed; a group left with nothing to offer is dropped.
+ */
+export type MissingGroup = { kind: "all"; code: string } | { kind: "any"; options: string[][] }
+
+export function missingGroups(node: PrereqNode, completed: ReadonlySet<string>): MissingGroup[] {
+  return dedupe(collectMissing(node, completed))
+}
+
+/**
+ * The data sometimes names a course twice with different notes (LANG 2010 "for DSCT only" /
+ * "for all others"). Each required course appears once, each option once per group, and a
+ * group already covered by a required course is dropped.
+ */
+function dedupe(groups: MissingGroup[]): MissingGroup[] {
+  const required = new Set(groups.flatMap((g) => (g.kind === "all" ? [g.code] : [])))
+  const seen = new Set<string>()
+  const out: MissingGroup[] = []
+  for (const g of groups) {
+    if (g.kind === "all") {
+      if (!seen.has(g.code)) out.push(g)
+      seen.add(g.code)
+      continue
+    }
+    const options = g.options.filter(
+      (o, i) => g.options.findIndex((p) => p.join("+") === o.join("+")) === i,
+    )
+    if (options.some((o) => o.every((c) => required.has(c)))) continue
+    out.push({ kind: "any", options })
+  }
+  return out
+}
+
+function collectMissing(node: PrereqNode, completed: ReadonlySet<string>): MissingGroup[] {
+  if (evaluate(node, completed) !== "unmet") return []
+  switch (node.kind) {
+    case "course":
+      return [{ kind: "all", code: node.code }]
+    case "text":
+      return []
+    case "all":
+      return node.children.flatMap((c) => collectMissing(c, completed))
+    case "any": {
+      const options = orOptions(node)
+        .map((codes) => codes.filter((code) => !completed.has(code)))
+        .filter((codes) => codes.length > 0)
+      if (options.length === 0) return []
+      if (options.length === 1 && options[0].length === 1)
+        return [{ kind: "all", code: options[0][0] }]
+      return [{ kind: "any", options }]
+    }
+  }
+}
+
+/** The alternatives of an OR node, with nested ORs flattened in. */
+function orOptions(node: PrereqNode): string[][] {
+  switch (node.kind) {
+    case "course":
+      return [[node.code]]
+    case "text":
+      return []
+    case "any":
+      return node.children.flatMap(orOptions)
+    case "all": {
+      const codes = firstPath(node)
+      return codes.length ? [codes] : []
+    }
+  }
+}
+
+/** One way to satisfy a node: every course of an AND, the first workable option of an OR. */
+function firstPath(node: PrereqNode): string[] {
+  switch (node.kind) {
+    case "course":
+      return [node.code]
+    case "text":
+      return []
+    case "all":
+      return node.children.flatMap(firstPath)
+    case "any":
+      for (const child of node.children) {
+        const path = firstPath(child)
+        if (path.length) return path
+      }
+      return []
+  }
+}

@@ -1,0 +1,180 @@
+#flow: StarPrerequisites
+#intent:
+# Starring a course you can't take yet offers to star its missing prerequisites too.
+# Covers the defaults, changing picks, cancelling (tap outside, swipe down), "star only",
+# already-starred options, required courses, courses taken together, courses missing from
+# the catalogue, and the cases with no prompt: no prerequisites, met, unverifiable, completed.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+# Search every term, so all the courses below are listed.
+- tapOn:
+    id: 'filters-button'
+- tapOn: 'All terms'
+- tapOn:
+    id: 'filters-apply'
+
+# No prerequisites: stars straight away.
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp 1021'
+- tapOn:
+    id: 'course-row-COMP 1021'
+- tapOn: 'Star course'
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+
+# COMP 3711: two "one of" groups, each preset to its first option.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- tapOn: 'Star course'
+- assertVisible: 'Prerequisites not met yet'
+- assertVisible: 'Star COMP 3711 \+ 2 prerequisites'
+# Picking another option swaps within the group; tapping the picked one clears the group.
+- tapOn:
+    id: 'star-option-COMP 2012'
+- assertVisible: 'Star COMP 3711 \+ 2 prerequisites'
+- tapOn:
+    id: 'star-option-COMP 2012'
+- assertVisible: 'Star COMP 3711 \+ 1 prerequisite'
+- takeScreenshot: star-prompt
+# Tapping outside cancels: nothing is starred.
+- tapOn:
+    point: '50%,8%'
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Star course'
+# Reopening starts from the defaults again.
+- tapOn: 'Star course'
+- assertVisible: 'Star COMP 3711 \+ 2 prerequisites'
+- tapOn:
+    id: 'star-with-prerequisites'
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Unstar course'
+
+# Starred prerequisites cover their group, so nothing is preset and they can't be picked.
+- tapOn: 'Unstar course'
+- tapOn: 'Star course'
+- assertVisible: 'Pick prerequisites to star'
+- assertVisible: 'COMP 2011, Starred'
+- assertVisible: 'COMP 2711, Starred'
+- tapOn:
+    id: 'star-only'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+
+# My Courses: COMP 1021, COMP 3711 and the two prerequisites.
+- tapOn: 'My Courses.*'
+- assertVisible: 'STARRED · 4'
+- assertVisible:
+    id: 'course-row-COMP 2011'
+- assertVisible:
+    id: 'course-row-COMP 2711'
+- tapOn: 'Explore.*'
+
+# A single required prerequisite is a checkbox; swiping down dismisses.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'dsaa 3072'
+- tapOn:
+    id: 'course-row-DSAA 3072'
+- tapOn: 'Star course'
+- assertVisible: 'Required'
+- assertVisible: 'Star DSAA 3072 \+ 1 prerequisite'
+- tapOn:
+    id: 'star-option-DSAA 3071'
+- assertVisible: 'Pick prerequisites to star'
+# (A coordinate swipe: Maestro's element swipe holds before dragging, unlike a real flick.)
+- swipe:
+    start: '50%,77%'
+    end: '50%,97%'
+    duration: 300
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Star course'
+- tapOn: 'Back'
+
+# Courses to be taken together form one option (COMP 2012H: COMP 1023, or COMP 1021 + 1028).
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 2012h'
+- tapOn:
+    id: 'course-row-COMP 2012H'
+- tapOn: 'Star course'
+- assertVisible: 'COMP 1021 \+ COMP 1028, Take together'
+- tapOn:
+    point: '50%,8%'
+- tapOn: 'Back'
+
+# A prerequisite missing from the catalogue is listed but can't be picked (CHEM 3030).
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'chem 3030'
+- tapOn:
+    id: 'course-row-CHEM 3030'
+- tapOn: 'Star course'
+- scrollUntilVisible:
+    element: 'MATH 1012, Not in the catalogue'
+    direction: DOWN
+- tapOn:
+    point: '50%,8%'
+- tapOn: 'Back'
+
+# Prerequisites met: no prompt. Complete COMP 2011 and COMP 2711, then star COMP 3711.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 2011'
+- tapOn:
+    id: 'course-row-COMP 2011'
+- tapOn:
+    id: 'toggle-completed'
+- tapOn: 'Back'
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 2711'
+- tapOn:
+    id: 'course-row-COMP 2711'
+- tapOn:
+    id: 'toggle-completed'
+- tapOn: 'Back'
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- tapOn: 'Unstar course'
+- tapOn: 'Star course'
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+
+# A completed course: no prompt, even though its own prerequisites aren't met.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 2011'
+- tapOn:
+    id: 'course-row-COMP 2011'
+- tapOn: 'Unstar course'
+- tapOn: 'Star course'
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+
+# Unverifiable (MATH 2411 also accepts an A-Level result): no prompt.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'math 2411'
+- tapOn:
+    id: 'course-row-MATH 2411'
+- tapOn: 'Star course'
+- assertNotVisible:
+    id: 'star-prompt'
+- assertVisible: 'Unstar course'
