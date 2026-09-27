@@ -1,5 +1,5 @@
 import type { PrereqNode } from "../types"
-import { evaluate, missingGroups, missingRequirements } from "./evaluate"
+import { courseStatus, evaluate, missingGroups, missingRequirements } from "./evaluate"
 
 const c = (code: string): PrereqNode => ({ kind: "course", code })
 const t = (text: string): PrereqNode => ({ kind: "text", text })
@@ -109,5 +109,28 @@ describe("missingGroups", () => {
   it("is empty when met or only unverifiable", () => {
     expect(missingGroups(comp3711, new Set(["COMP 2011", "COMP 2711"]))).toEqual([])
     expect(missingGroups(any(t("HKDSE"), c("PHYS 1111")), new Set())).toEqual([])
+  })
+})
+
+describe("courseStatus", () => {
+  it("is completed, can-take, needs or unknown", () => {
+    expect(courseStatus("COMP 3711", comp3711, new Set(["COMP 3711"]))).toEqual({
+      kind: "completed",
+    })
+    expect(courseStatus("COMP 3711", comp3711, new Set(["COMP 2011", "MATH 2343"]))).toEqual({
+      kind: "can-take",
+    })
+    expect(courseStatus("COMP 3711", comp3711, new Set(["COMP 2011"]))).toEqual({
+      kind: "needs",
+      missing: 1,
+    })
+    expect(courseStatus("COMP 3711", comp3711, new Set())).toEqual({ kind: "needs", missing: 2 })
+    expect(courseStatus("X", any(t("HKDSE"), c("PHYS 1111")), new Set())).toEqual({
+      kind: "unknown",
+    })
+  })
+
+  it("counts a course with no prerequisites as one you can take", () => {
+    expect(courseStatus("COMP 1021", null, new Set())).toEqual({ kind: "can-take" })
   })
 })

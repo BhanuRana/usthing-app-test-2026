@@ -31,13 +31,37 @@ import type { ThemedStyle } from "@/theme/types"
 
 import { DeptBadge } from "./DeptBadge"
 
+/** Which action the prompt belongs to: starring, or marking completed. */
+export type PromptKind = "star" | "complete"
+
+const TEXT = {
+  star: {
+    title: "starPrompt:title",
+    body: "starPrompt:body",
+    with: "starPrompt:starWith",
+    only: "starPrompt:starOnly",
+    pickSome: "starPrompt:pickSome",
+    already: "starPrompt:alreadyStarred",
+  },
+  complete: {
+    title: "completePrompt:title",
+    body: "completePrompt:body",
+    with: "completePrompt:markWith",
+    only: "completePrompt:markOnly",
+    pickSome: "completePrompt:pickSome",
+    already: "completePrompt:alreadyCompleted",
+  },
+} as const
+
 interface StarPromptProps {
+  /** Starring (default) or marking completed; changes the wording and icons. */
+  kind?: PromptKind
   visible: boolean
-  /** The course being starred. */
+  /** The course being already. */
   code: string
   /** Its unmet prerequisites (see `missingGroups`). */
   groups: MissingGroup[]
-  starred: ReadonlySet<string>
+  already: ReadonlySet<string>
   /** Called with every code to star: the course itself plus the chosen prerequisites. */
   onConfirm: (codes: string[]) => void
   onClose: () => void
@@ -46,9 +70,9 @@ interface StarPromptProps {
 const OPEN = { duration: 300, easing: Easing.out(Easing.cubic) }
 const CLOSE = { duration: 220, easing: Easing.in(Easing.cubic) }
 
-/** A course can be picked if it exists and isn't starred yet. */
-const pickable = (codes: string[], starred: ReadonlySet<string>) =>
-  codes.every((c) => !!getCourse(c)) && codes.some((c) => !starred.has(c))
+/** A course can be picked if it exists and isn't already yet. */
+const pickable = (codes: string[], already: ReadonlySet<string>) =>
+  codes.every((c) => !!getCourse(c)) && codes.some((c) => !already.has(c))
 
 /**
  * Shown when starring a course whose prerequisites aren't met: says what's missing and offers
@@ -57,7 +81,9 @@ const pickable = (codes: string[], starred: ReadonlySet<string>) =>
  * nothing.
  */
 export function StarPrompt(props: StarPromptProps) {
-  const { visible, code, groups, starred, onConfirm, onClose } = props
+  const { visible, code, groups, already, onConfirm, onClose, kind = "star" } = props
+  const text = TEXT[kind]
+  const id = kind === "star" ? "star" : "complete"
   const {
     themed,
     theme: { colors },
@@ -78,15 +104,15 @@ export function StarPrompt(props: StarPromptProps) {
     if (!visible) return
     setRequired(
       new Set(
-        groups.flatMap((g) => (g.kind === "all" && pickable([g.code], starred) ? [g.code] : [])),
+        groups.flatMap((g) => (g.kind === "all" && pickable([g.code], already) ? [g.code] : [])),
       ),
     )
     setChoices(
       groups.map((g) => {
         if (g.kind === "all") return undefined
-        // A group with a starred option is already covered: preselect nothing there.
-        if (g.options.some((o) => o.every((c) => starred.has(c)))) return undefined
-        const first = g.options.findIndex((o) => pickable(o, starred))
+        // A group with a already option is already covered: preselect nothing there.
+        if (g.options.some((o) => o.every((c) => already.has(c)))) return undefined
+        const first = g.options.findIndex((o) => pickable(o, already))
         return first === -1 ? undefined : first
       }),
     )
@@ -114,12 +140,12 @@ export function StarPrompt(props: StarPromptProps) {
       const choice = choices[i]
       if (g.kind === "any" && choice !== undefined) g.options[choice].forEach((c) => codes.add(c))
     })
-    return [...codes].filter((c) => !starred.has(c))
-  }, [required, choices, groups, starred])
+    return [...codes].filter((c) => !already.has(c))
+  }, [required, choices, groups, already])
 
   const primaryLabel = extra.length
-    ? translate("starPrompt:starWith", { code, count: extra.length, n: extra.length })
-    : translate("starPrompt:pickSome")
+    ? translate(text.with, { code, count: extra.length, n: extra.length })
+    : translate(text.pickSome)
 
   const confirm = (codes: string[]) => {
     onConfirm(codes)
@@ -182,17 +208,21 @@ export function StarPrompt(props: StarPromptProps) {
           <Animated.View
             onLayout={onSheetLayout}
             style={[themed($sheet), { paddingBottom: bottom + 12 }, $sheetAnimated]}
-            testID="star-prompt"
+            testID={`${id}-prompt`}
           >
             <View style={themed($grabber)} />
 
             <View style={$heading}>
-              <View style={themed($alertIcon)}>
-                <Ionicons name="alert-circle" size={22} color={colors.warning} />
+              <View style={[themed($alertIcon), kind === "complete" && themed($doneIcon)]}>
+                <Ionicons
+                  name={kind === "star" ? "alert-circle" : "school"}
+                  size={22}
+                  color={kind === "star" ? colors.warning : colors.success}
+                />
               </View>
               <View style={$flex}>
-                <Text preset="subheading" tx="starPrompt:title" />
-                <Text size="xs" style={themed($dim)} tx="starPrompt:body" txOptions={{ code }} />
+                <Text preset="subheading" tx={text.title} />
+                <Text size="xs" style={themed($dim)} tx={text.body} txOptions={{ code }} />
               </View>
             </View>
 
@@ -205,7 +235,8 @@ export function StarPrompt(props: StarPromptProps) {
                       codes={[g.code]}
                       control="checkbox"
                       selected={required.has(g.code)}
-                      starred={starred}
+                      already={already}
+                      kind={kind}
                       onPress={() => toggleRequired(g.code)}
                     />
                   </View>
@@ -218,7 +249,8 @@ export function StarPrompt(props: StarPromptProps) {
                         codes={codes}
                         control="radio"
                         selected={choices[gi] === oi}
-                        starred={starred}
+                        already={already}
+                        kind={kind}
                         onPress={() => choose(gi, oi)}
                       />
                     ))}
@@ -231,7 +263,7 @@ export function StarPrompt(props: StarPromptProps) {
               accessibilityRole="button"
               accessibilityLabel={primaryLabel}
               accessibilityState={{ disabled: extra.length === 0 }}
-              testID="star-with-prerequisites"
+              testID={`${id}-with-prerequisites`}
               disabled={extra.length === 0}
               onPress={() => confirm([code, ...extra])}
               style={({ pressed }) => [
@@ -241,7 +273,7 @@ export function StarPrompt(props: StarPromptProps) {
               ]}
             >
               <Ionicons
-                name="star"
+                name={kind === "star" ? "star" : "checkmark-circle"}
                 size={18}
                 color={extra.length ? colors.palette.neutral100 : colors.textDim}
               />
@@ -253,7 +285,7 @@ export function StarPrompt(props: StarPromptProps) {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              testID="star-only"
+              testID={`${id}-only`}
               onPress={() => confirm([code])}
               style={({ pressed }) => [$secondary, pressed && $pressed]}
               hitSlop={6}
@@ -261,7 +293,7 @@ export function StarPrompt(props: StarPromptProps) {
               <Text
                 weight="medium"
                 style={{ color: colors.tint }}
-                tx="starPrompt:starOnly"
+                tx={text.only}
                 txOptions={{ code }}
               />
             </Pressable>
@@ -281,20 +313,22 @@ interface OptionRowProps {
   codes: string[]
   control: "checkbox" | "radio"
   selected: boolean
-  starred: ReadonlySet<string>
+  already: ReadonlySet<string>
   onPress: () => void
+  kind: PromptKind
 }
 
-/** One course (or courses taken together) that can be picked for starring. */
-function OptionRow({ codes, control, selected, starred, onPress }: OptionRowProps) {
+/** One course (or courses taken together) that can be picked. */
+function OptionRow({ codes, control, selected, already, onPress, kind }: OptionRowProps) {
+  const alreadyText = translate(TEXT[kind].already)
   const {
     themed,
     theme: { colors },
   } = useAppTheme()
   const courses = codes.map(getCourse)
   const missing = courses.some((c) => !c)
-  const allStarred = codes.every((c) => starred.has(c))
-  const disabled = missing || allStarred
+  const allAlready = codes.every((c) => already.has(c))
+  const disabled = missing || allAlready
   const label = codes.join(" + ")
   const detail = missing
     ? translate("starPrompt:notInCatalogue")
@@ -315,7 +349,7 @@ function OptionRow({ codes, control, selected, starred, onPress }: OptionRowProp
     <Pressable
       accessibilityRole={control}
       accessibilityState={{ checked: selected, disabled }}
-      accessibilityLabel={`${label}, ${allStarred ? translate("starPrompt:alreadyStarred") : detail}`}
+      accessibilityLabel={`${label}, ${allAlready ? alreadyText : detail}`}
       disabled={disabled}
       onPress={onPress}
       testID={`star-option-${label}`}
@@ -331,10 +365,14 @@ function OptionRow({ codes, control, selected, starred, onPress }: OptionRowProp
         <Text size="xs" weight="semiBold" text={label} numberOfLines={1} />
         <Text size="xxs" style={themed($dim)} text={detail} numberOfLines={1} />
       </View>
-      {allStarred ? (
-        <View style={$starredTag}>
-          <Ionicons name="star" size={14} color={colors.star} />
-          <Text size="xxs" style={themed($dim)} tx="starPrompt:alreadyStarred" />
+      {allAlready ? (
+        <View style={$alreadyTag}>
+          <Ionicons
+            name={kind === "star" ? "star" : "checkmark-circle"}
+            size={14}
+            color={kind === "star" ? colors.star : colors.success}
+          />
+          <Text size="xxs" style={themed($dim)} text={alreadyText} />
         </View>
       ) : (
         !missing && (
@@ -385,6 +423,8 @@ const $grabber: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $heading: ViewStyle = { flexDirection: "row", gap: 12, marginBottom: 4 }
 
+const $doneIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.successSoft })
+
 const $alertIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
   width: 40,
   height: 40,
@@ -421,7 +461,7 @@ const $rowSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
 
 const $rowDisabled: ViewStyle = { opacity: 0.55 }
 
-const $starredTag: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 3 }
+const $alreadyTag: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 3 }
 
 const $primary: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",

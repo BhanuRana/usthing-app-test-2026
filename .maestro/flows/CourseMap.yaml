@@ -1,7 +1,7 @@
 #flow: CourseMap
 #intent:
 # The prerequisite map: open it from a course, fit, select a course (lineage + card),
-# switch sides, re-centre on another course, explore forward along "leads to" with the
+# both sides at once, mark a course completed from the map, re-centre on another course, explore forward along "leads to" with the
 # breadcrumb, come back, open a course from the map,
 # the real prerequisite loop, and no map button when there's nothing to draw.
 appId: ${MAESTRO_APP_ID}
@@ -32,19 +32,25 @@ onFlowStart:
 - assertVisible: 'Step 2 of your path'
 - takeScreenshot: map-selected
 
-# One side at a time.
+# Both sides at once: prerequisites on the left, what it leads to on the right.
 - tapOn:
-    id: 'map-mode-prerequisites'
-- assertNotVisible:
-    id: 'map-node-COMP 4411'
-- tapOn:
-    id: 'map-mode-leads'
+    id: 'map-fit'
 - assertVisible:
     id: 'map-node-COMP 4411'
-- assertNotVisible:
+- assertVisible:
     id: 'map-node-COMP 2011'
+
+# Mark the selected prerequisite (COMP 2011) completed from the map: the card asks about its
+# own prerequisites, then it reads as completed and its "one of" group is met.
 - tapOn:
-    id: 'map-mode-both'
+    id: 'map-toggle-completed'
+- assertVisible:
+    id: 'complete-prompt'
+- tapOn:
+    id: 'complete-with-prerequisites'
+- assertVisible: 'Completed · Undo'
+- assertVisible: 'ONE OF 3 ✓'
+- tapOn: 'Close'
 
 # Re-centre on COMP 2011, then come back to COMP 3711's map.
 - tapOn:

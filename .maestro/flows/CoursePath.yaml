@@ -39,6 +39,14 @@ onFlowStart:
     id: 'path-course-UFUG 1601'
 - tapOn:
     id: 'toggle-completed'
+# Marking completed may ask about its prerequisites too; this flow keeps to one course.
+- runFlow:
+    when:
+      visible:
+        id: 'complete-prompt'
+    commands:
+      - tapOn:
+          id: 'complete-only'
 - tapOn: 'Back'
 - scrollUntilVisible:
     element: 'Your path'

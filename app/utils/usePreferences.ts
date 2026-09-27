@@ -46,8 +46,8 @@ export function useStarred() {
 
 /** Courses the user has passed; drives prerequisite checks and the "Unlocked" filter. */
 export function useCompleted() {
-  const [completed, toggle] = useCodeSet(COMPLETED_KEY)
-  return { completed, toggle }
+  const [completed, toggle, add] = useCodeSet(COMPLETED_KEY)
+  return { completed, toggle, add }
 }
 
 /**

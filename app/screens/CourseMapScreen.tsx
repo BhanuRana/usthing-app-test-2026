@@ -16,12 +16,19 @@ import Svg, { Circle, Defs, G, Path, Pattern, Rect } from "react-native-svg"
 import { scheduleOnRN } from "react-native-worklets"
 
 import { HeroButton } from "@/components/course/HeroHeader"
+import { StarPrompt } from "@/components/course/StarPrompt"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { getCourse, getPrereqGraph } from "@/data/catalog"
-import { buildCourseMap, lineage, MAP_SIZES, MapMode, MapNode } from "@/data/prereq/map"
+import { getCourse, getCourseVersion, getPrereqGraph } from "@/data/catalog"
+import {
+  courseStatus,
+  CourseStatus,
+  missingGroups,
+  missingRequirements,
+} from "@/data/prereq/evaluate"
+import { buildCourseMap, lineage, MAP_SIZES, MapNode } from "@/data/prereq/map"
 import { planPath } from "@/data/prereq/plan"
-import { unlockedBy } from "@/data/prereq/traverse"
+import { prereqTreeFor, unlockedBy } from "@/data/prereq/traverse"
 import { translate } from "@/i18n/translate"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -58,10 +65,11 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   } = useAppTheme()
   const { top, bottom } = useSafeAreaInsets()
   const { starred } = useStarred()
-  const { completed } = useCompleted()
+  const { completed, toggle: toggleCompleted, add: addCompleted } = useCompleted()
   const graph = getPrereqGraph()
 
-  const [mode, setMode] = useState<MapMode>("both")
+  // Always both directions: what comes before, the course, and where it leads.
+  const mode = "both"
   const [showPath, setShowPath] = useState(true)
   const [selected, setSelected] = useState<string>()
   // The key (what the colours and lines mean) stays out of the way until asked for.
@@ -84,6 +92,46 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   // The focus and the expanded trail, in order: the explored route through "leads to".
   const explored = useMemo(() => [code, ...map.trail], [code, map.trail])
   const leadsOf = useCallback((id: string) => unlockedBy(graph, id).length, [graph])
+
+  // Can each course be taken, from what's marked completed? Only shown once something is
+  // (before that, every course would say "needs", which says nothing).
+  const hasCompleted = completed.size > 0
+  const treeOf = useCallback(
+    (id: string) => prereqTreeFor(graph, id, id === code ? term : undefined),
+    [graph, code, term],
+  )
+  const statusById = useMemo(() => {
+    const out = new Map<string, CourseStatus>()
+    for (const n of map.nodes)
+      if (n.kind === "course") out.set(n.id, courseStatus(n.id, treeOf(n.id), completed))
+    return out
+  }, [map, treeOf, completed])
+  // A junction is met when its group is: any option (one of) or every part (all of) done.
+  const junctionMet = useCallback(
+    (id: string) => {
+      const into = map.edges.filter((e) => e.to === id && !e.loop).map((e) => e.from)
+      const kind = map.nodes.find((n) => n.id === id)?.kind
+      return kind === "any"
+        ? into.some((c) => completed.has(c))
+        : into.every((c) => completed.has(c))
+    },
+    [map, completed],
+  )
+
+  // Marking a course completed from the map asks about its unmet prerequisites, like the
+  // course page does.
+  const [completing, setCompleting] = useState<string>()
+  const completingGroups = useMemo(() => {
+    if (!completing) return []
+    const tree = treeOf(completing)
+    return tree ? missingGroups(tree, completed) : []
+  }, [completing, treeOf, completed])
+  const onToggleCompleted = (id: string) => {
+    if (completed.has(id)) return toggleCompleted(id)
+    const tree = treeOf(id)
+    if (tree && missingGroups(tree, completed).length > 0) setCompleting(id)
+    else toggleCompleted(id)
+  }
   const path = useMemo(
     () => planPath(graph, code, completed, starred, term),
     [graph, code, completed, starred, term],
@@ -132,7 +180,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
     originRef.current = origin
   })
   // Space kept clear of the floating controls at the top and the card/legend at the bottom.
-  const inset = { top: 64, bottom: 84 }
+  const inset = { top: 56, bottom: 84 }
 
   const fitTransform = useCallback(() => {
     const availW = viewport.w - 24
@@ -215,7 +263,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
     // the prerequisites side matters more (unless only "leads to" is shown).
     const wide = regionOf(-1, 1)
     const fitsWide = (viewport.w - 24) / wide.w >= READABLE_ZOOM + 0.08
-    const region = fitsWide ? wide : mode === "leads" ? regionOf(0, 1) : regionOf(-1, 0)
+    const region = fitsWide ? wide : regionOf(-1, 0)
     const t = frameRegion(region, READABLE_ZOOM + 0.08)
     // If the neighbourhood is too tall to fit (a course that leads to dozens), keep the
     // course itself in the middle vertically.
@@ -293,6 +341,23 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
       (e) => e.to === n.id && !e.loop && (nodeById.get(e.from)?.rank ?? -1) >= 0,
     )?.from
     return translate("map:relBuildsOn", { code: parent ?? code })
+  }
+
+  // The card's verdict: the same answer as the course page's eligibility banner.
+  const verdictOf = (id: string): SelectedCardProps["verdict"] => {
+    const status = statusById.get(id) ?? courseStatus(id, treeOf(id), completed)
+    const tree = treeOf(id)
+    if (status.kind === "completed") return { tone: "done", text: translate("map:completed") }
+    if (!tree) return { tone: "ok", text: translate("map:canTakeNone") }
+    if (!hasCompleted) return { tone: "muted", text: translate("map:markHint") }
+    if (status.kind === "can-take") return { tone: "ok", text: translate("map:canTake") }
+    if (status.kind === "unknown") return { tone: "muted", text: translate("map:cantCheck") }
+    return {
+      tone: "warn",
+      text: translate("map:stillNeeded", {
+        items: missingRequirements(tree, completed).join(", "),
+      }),
+    }
   }
 
   // Back along the explored route: keep it up to that course and glide there.
@@ -441,6 +506,10 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
     }
     const arrow = `M ${x2 - head.l} ${y2 - head.w} L ${x2} ${y2} L ${x2 - head.l} ${y2 + head.w} Z`
     const dim = !!lit && !inLineage
+    // A requirement already met: out of a completed course, or out of a satisfied group.
+    const done =
+      !e.loop &&
+      (completed.has(e.from) || (nodeById.get(e.from)?.kind !== "course" && junctionMet(e.from)))
     return {
       key: `${e.from}>${e.to}`,
       d,
@@ -450,8 +519,8 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
         ? colors.warning
         : inLineage || highlighted
           ? colors.tint
-          : isDark
-            ? colors.palette.neutral400
+          : done
+            ? colors.success
             : colors.palette.neutral400,
       width,
       opacity: dim ? 0.12 : e.loop ? 0.9 : inLineage || highlighted ? 1 : 0.85,
@@ -549,6 +618,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
                     rect={rectOf(n)}
                     dim={!!lit && !lit.has(n.id)}
                     options={map.edges.filter((e) => e.to === n.id).length}
+                    met={junctionMet(n.id)}
                   />
                 ))}
 
@@ -564,6 +634,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
                   step={showPath ? pathStep.get(n.id) : undefined}
                   onPathRing={(showPath && pathStep.has(n.id)) || map.trail.includes(n.id)}
                   leads={n.rank >= 1 && !map.trail.includes(n.id) ? leadsOf(n.id) : 0}
+                  status={hasCompleted ? statusById.get(n.id) : undefined}
                   dim={!!lit && !lit.has(n.id)}
                   isDark={isDark}
                   onSelect={open}
@@ -575,29 +646,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
 
         {/* Floating controls */}
         <View style={$controls} pointerEvents="box-none">
-          <View style={themed($segmented)}>
-            {(["prerequisites", "both", "leads"] as const).map((m) => (
-              <Pressable
-                key={m}
-                accessibilityRole="button"
-                accessibilityState={{ selected: mode === m }}
-                testID={`map-mode-${m}`}
-                onPress={() => {
-                  select(undefined)
-                  setMode(m)
-                }}
-                style={[themed($segment), mode === m && themed($segmentOn)]}
-              >
-                <Text
-                  size="xxs"
-                  weight={mode === m ? "semiBold" : "medium"}
-                  style={{ color: mode === m ? colors.tint : colors.textDim }}
-                  tx={`map:${m}`}
-                />
-              </Pressable>
-            ))}
-          </View>
-          {path && mode !== "leads" && (
+          {path && (
             <Pressable
               accessibilityRole="switch"
               accessibilityState={{ checked: showPath }}
@@ -618,12 +667,10 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
               />
             </Pressable>
           )}
-        </View>
-
-        {map.trail.length > 0 && (
-          <View style={$crumbBar} pointerEvents="box-none">
+          {map.trail.length > 0 && (
             <ScrollView
               horizontal
+              style={$crumbScroll}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={themed($crumbs)}
               accessibilityLabel={translate("map:trail")}
@@ -654,8 +701,8 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
                 </View>
               ))}
             </ScrollView>
-          </View>
-        )}
+          )}
+        </View>
 
         <View style={$zoomButtons} pointerEvents="box-none">
           <Pressable
@@ -697,6 +744,9 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
                 (e) => e.loop && (e.from === selectedNode.id || e.to === selectedNode.id),
               )}
               leads={selectedNode.rank >= 0 ? leadsOf(selectedNode.id) : undefined}
+              term={term}
+              verdict={verdictOf(selectedNode.id)}
+              onToggleCompleted={() => onToggleCompleted(selectedNode.id)}
               onOpen={() => navigation.push("CourseDetail", { code: selectedNode.id, term })}
               onCentre={() => navigation.push("CourseMap", { code: selectedNode.id, term })}
               onClose={() => select(undefined)}
@@ -714,7 +764,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
                   <Text size="xxs" weight="medium" style={$tipText} tx="map:tip" />
                 </Animated.View>
               )}
-              {keyOpen && <Legend showPath={showPath && !!path && mode !== "leads"} />}
+              {keyOpen && <Legend showPath={showPath && !!path} />}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={translate(keyOpen ? "map:keyHide" : "map:keyShow")}
@@ -738,6 +788,16 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
           )}
         </View>
       </View>
+
+      <StarPrompt
+        kind="complete"
+        visible={!!completing}
+        code={completing ?? ""}
+        groups={completingGroups}
+        already={completed}
+        onConfirm={addCompleted}
+        onClose={() => setCompleting(undefined)}
+      />
     </Screen>
   )
 }
@@ -768,6 +828,8 @@ interface CourseNodeProps {
   onPathRing: boolean
   /** How many courses this one leads to, when tapping it would expand them (else 0). */
   leads: number
+  /** Whether the student can take it (shown once anything is marked completed). */
+  status?: CourseStatus
   dim: boolean
   isDark: boolean
   onSelect: (id: string) => void
@@ -775,7 +837,8 @@ interface CourseNodeProps {
 
 const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
   const { node, rect, isFocus, isSelected, completed, starred, step, onPathRing, dim } = props
-  const { isDark, onSelect, leads } = props
+  const { isDark, onSelect, leads, status } = props
+  const canTake = status?.kind === "can-take" && !isFocus
   const {
     themed,
     theme: { colors },
@@ -784,7 +847,7 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
   const stripe = departmentColor(node.id.split(" ")[0], isDark).fg
   const fg = isFocus ? colors.palette.neutral100 : colors.text
   const title = course?.title ?? translate("map:notInCatalogue")
-  const status = [
+  const statusText = [
     completed && translate("map:completed"),
     starred && translate("map:starred"),
     step && translate("map:onPath", { n: step }),
@@ -803,7 +866,7 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
       style={[$place, { left: rect.x, top: rect.y, width: rect.w, height: rect.h }]}
       accessible
       accessibilityRole="button"
-      accessibilityLabel={[translate("map:nodeLabel", { code: node.id, title }), status]
+      accessibilityLabel={[translate("map:nodeLabel", { code: node.id, title }), statusText]
         .filter(Boolean)
         .join(", ")}
       accessibilityState={{ selected: isSelected }}
@@ -815,6 +878,7 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
           themed($node),
           !course && themed($nodeMissing),
           completed && !isFocus && themed($nodeCompleted),
+          canTake && themed($nodeCanTake),
           onPathRing && !completed && themed($nodeOnPath),
           isFocus && themed($nodeFocus),
           isSelected && themed($nodeSelected),
@@ -852,6 +916,27 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
             <Text weight="bold" style={$stepText} text={String(step)} />
           </View>
         )}
+        {status && status.kind !== "completed" && (
+          <View
+            style={[
+              themed($statusTag),
+              status.kind === "can-take" && themed($statusOk),
+              status.kind === "needs" && themed($statusWarn),
+            ]}
+          >
+            <Text
+              weight="bold"
+              style={$statusText}
+              text={
+                status.kind === "can-take"
+                  ? translate("map:tagCanTake")
+                  : status.kind === "needs"
+                    ? translate("map:tagNeeds", { n: status.missing })
+                    : "?"
+              }
+            />
+          </View>
+        )}
         {leads > 0 && (
           <View
             style={themed($leadsBadge)}
@@ -866,8 +951,15 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
   )
 })
 
-function Junction(props: { node: MapNode; rect: Box; dim: boolean; options: number }) {
-  const { node, rect, dim, options } = props
+function Junction(props: {
+  node: MapNode
+  rect: Box
+  dim: boolean
+  options: number
+  /** The group is satisfied by completed courses. */
+  met: boolean
+}) {
+  const { node, rect, dim, options, met } = props
   const { themed } = useAppTheme()
   const $dimAnimated = useDimStyle(dim)
   return (
@@ -877,12 +969,11 @@ function Junction(props: { node: MapNode; rect: Box; dim: boolean; options: numb
       style={[$place, { left: rect.x, top: rect.y, width: rect.w, height: rect.h }]}
       pointerEvents="none"
     >
-      <Animated.View style={[themed($junction), $dimAnimated]}>
+      <Animated.View style={[themed($junction), met && themed($junctionMet), $dimAnimated]}>
         <Text
           weight="bold"
-          style={themed($junctionText)}
-          tx={node.kind === "any" ? "map:oneOf" : "map:allOf"}
-          txOptions={{ n: options }}
+          style={[themed($junctionText), met && themed($junctionTextMet)]}
+          text={`${translate(node.kind === "any" ? "map:oneOf" : "map:allOf", { n: options })}${met ? " ✓" : ""}`}
         />
       </Animated.View>
     </Animated.View>
@@ -903,6 +994,10 @@ interface SelectedCardProps {
   loop: boolean
   /** Courses it leads to, for courses on the right-hand side (undefined elsewhere). */
   leads?: number
+  term?: number
+  /** Whether the student can take it, in words, with a tone for colour. */
+  verdict: { tone: "done" | "ok" | "warn" | "muted"; text: string }
+  onToggleCompleted: () => void
   onOpen: () => void
   onCentre: () => void
   onClose: () => void
@@ -910,18 +1005,15 @@ interface SelectedCardProps {
 
 function SelectedCard(props: SelectedCardProps) {
   const { code, node, isFocus, completed, starred, step, loop, leads, onOpen, onCentre } = props
-  const { onClose, relation } = props
+  const { onClose, relation, term, verdict, onToggleCompleted } = props
+  // A glance at what the course is about; the full page is one tap away.
+  const description = getCourseVersion(code, term)?.description
   const {
     themed,
     theme: { colors },
   } = useAppTheme()
   const course = getCourse(code)
   const facts = [
-    completed && {
-      icon: "checkmark-circle" as const,
-      color: colors.success,
-      text: translate("map:completed"),
-    },
     starred && { icon: "star" as const, color: colors.star, text: translate("map:starred") },
     step && {
       icon: "trail-sign-outline" as const,
@@ -968,6 +1060,45 @@ function SelectedCard(props: SelectedCardProps) {
           <Ionicons name="close" size={20} color={colors.textDim} />
         </Pressable>
       </View>
+      <View style={[themed($verdict), themed(VERDICT_BG[verdict.tone])]} testID="map-verdict">
+        <Ionicons
+          name={VERDICT_ICON[verdict.tone]}
+          size={16}
+          color={
+            verdict.tone === "done" || verdict.tone === "ok"
+              ? colors.success
+              : verdict.tone === "warn"
+                ? colors.warning
+                : colors.textDim
+          }
+        />
+        <Text size="xxs" weight="medium" style={$flex} text={verdict.text} />
+        {course && (
+          <Pressable
+            accessibilityRole="button"
+            testID="map-toggle-completed"
+            onPress={onToggleCompleted}
+            hitSlop={8}
+          >
+            <Text
+              size="xxs"
+              weight="semiBold"
+              style={{ color: colors.tint }}
+              tx={completed ? "map:undoCompleted" : "map:markCompleted"}
+            />
+          </Pressable>
+        )}
+      </View>
+      {!!description && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint={translate("map:openCourse")}
+          onPress={onOpen}
+          testID="map-description"
+        >
+          <Text size="xxs" numberOfLines={2} style={themed($preview)} text={description} />
+        </Pressable>
+      )}
       {facts.length > 0 && (
         <View style={$facts}>
           {facts.map((f) => (
@@ -1026,6 +1157,14 @@ function Legend({ showPath }: { showPath: boolean }) {
         <LegendItem
           swatch={<Ionicons name="checkmark-circle" size={14} color={colors.success} />}
           tx="map:legendCompleted"
+        />
+        <LegendItem
+          swatch={<View style={[$swatchPill, { backgroundColor: colors.success }]} />}
+          tx="map:legendCanTake"
+        />
+        <LegendItem
+          swatch={<View style={[$swatchPill, { backgroundColor: colors.warning }]} />}
+          tx="map:legendNeeds"
         />
         <LegendItem
           swatch={<Ionicons name="star" size={13} color={colors.star} />}
@@ -1172,6 +1311,61 @@ const $stepBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderWidth: 3,
   borderColor: colors.background,
 })
+const $nodeCanTake: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.success,
+  borderWidth: 2.5,
+  borderStyle: "dashed",
+})
+
+const $statusTag: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  position: "absolute",
+  top: -14,
+  right: 16,
+  height: 26,
+  paddingHorizontal: 9,
+  borderRadius: 13,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.textDim,
+  borderWidth: 3,
+  borderColor: colors.background,
+})
+const $statusOk: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.success })
+const $statusWarn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.warning })
+const $statusText: TextStyle = {
+  color: "#FFFFFF",
+  fontSize: 12,
+  lineHeight: 15,
+  letterSpacing: 0.6,
+}
+
+const $junctionMet: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.success,
+  backgroundColor: colors.successSoft,
+})
+const $junctionTextMet: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.success })
+
+const $verdict: ThemedStyle<ViewStyle> = () => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+  paddingHorizontal: 10,
+  paddingVertical: 7,
+  borderRadius: 10,
+})
+const VERDICT_BG: Record<"done" | "ok" | "warn" | "muted", ThemedStyle<ViewStyle>> = {
+  done: ({ colors }) => ({ backgroundColor: colors.successSoft }),
+  ok: ({ colors }) => ({ backgroundColor: colors.successSoft }),
+  warn: ({ colors }) => ({ backgroundColor: colors.warningSoft }),
+  muted: ({ colors }) => ({ backgroundColor: colors.surfaceAlt }),
+}
+const VERDICT_ICON = {
+  done: "checkmark-circle",
+  ok: "checkmark-circle-outline",
+  warn: "alert-circle",
+  muted: "information-circle-outline",
+} as const
+
 const $leadsBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   position: "absolute",
   right: -18,
@@ -1191,9 +1385,7 @@ const $leadsBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 const $leadsText: TextStyle = { color: "#FFFFFF", fontSize: 14, lineHeight: 18 }
 
-const $crumbBar: ViewStyle = { position: "absolute", top: 62, left: 0, right: 64 }
-const $crumbs: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.sm,
+const $crumbs: ThemedStyle<ViewStyle> = () => ({
   alignItems: "center",
   gap: 4,
 })
@@ -1226,33 +1418,18 @@ const $junctionText: ThemedStyle<TextStyle> = ({ colors }) => ({
   letterSpacing: 0.8,
 })
 
+// Top-left: the "My path" switch; below it, the explored route; top-right: fit and zoom.
 const $controls: ViewStyle = {
   position: "absolute",
   top: 12,
-  left: 0,
-  right: 0,
+  left: 12,
+  right: 64,
+  height: 42, // the zoom buttons' height, so everything in the top row shares one centre line
   flexDirection: "row",
-  justifyContent: "center",
   alignItems: "center",
   gap: 8,
 }
-
-const $segmented: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
-  flexDirection: "row",
-  padding: 3,
-  borderRadius: 14,
-  backgroundColor: isDark ? colors.surfaceAlt : colors.surface,
-  shadowColor: "#0F1C2E",
-  shadowOpacity: isDark ? 0 : 0.12,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 3 },
-})
-const $segment: ThemedStyle<ViewStyle> = () => ({
-  paddingHorizontal: 12,
-  paddingVertical: 7,
-  borderRadius: 11,
-})
-const $segmentOn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tintSoft })
+const $crumbScroll: ViewStyle = { flexGrow: 0, flexShrink: 1 }
 
 const $pathToggle: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
   flexDirection: "row",
@@ -1285,7 +1462,7 @@ const $tipText: TextStyle = { color: "#FFFFFF" }
 
 const $roundButtonOn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tint })
 
-const $zoomButtons: ViewStyle = { position: "absolute", right: 14, top: 64, gap: 10 }
+const $zoomButtons: ViewStyle = { position: "absolute", right: 14, top: 12, gap: 10 }
 
 const $roundButton: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
   width: 42,
@@ -1312,6 +1489,8 @@ const $card: ThemedStyle<ViewStyle> = ({ colors, spacing, isDark }) => ({
   shadowRadius: 18,
   shadowOffset: { width: 0, height: 6 },
 })
+const $preview: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.text, lineHeight: 18 })
+
 const $cardTop: ViewStyle = { flexDirection: "row", gap: 10 }
 const $facts: ViewStyle = { flexDirection: "row", flexWrap: "wrap", gap: 10 }
 const $fact: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4 }
@@ -1358,6 +1537,7 @@ const $legendRow: ViewStyle = {
   rowGap: 4,
 }
 const $legendItem: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4 }
+const $swatchPill: ViewStyle = { width: 16, height: 9, borderRadius: 5 }
 const $swatchBox: ViewStyle = { width: 12, height: 12, borderRadius: 4 }
 const $swatchLine: ViewStyle = { width: 18, height: 3, borderRadius: 2 }
 const $swatchDashed: ViewStyle = {

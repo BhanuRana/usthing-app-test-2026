@@ -37,6 +37,13 @@ onFlowStart:
     id: 'course-row-COMP 1021'
 - tapOn:
     id: 'toggle-completed'
+- runFlow:
+    when:
+      visible:
+        id: 'complete-prompt'
+    commands:
+      - tapOn:
+          id: 'complete-only'
 - tapOn: 'Back'
 - tapOn: '.*Search code or title.*'
 - eraseText: 20

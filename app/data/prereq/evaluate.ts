@@ -161,3 +161,33 @@ function firstPath(node: PrereqNode): string[] {
       return []
   }
 }
+
+/**
+ * Where a course stands for a student, from their completed courses:
+ *   - `completed`: done;
+ *   - `can-take`: every prerequisite is met (or it has none);
+ *   - `needs`: something is still missing (`missing` groups, as in `missingGroups`);
+ *   - `unknown`: what's left can't be checked (free text such as an HKDSE result).
+ */
+export type CourseStatus =
+  | { kind: "completed" }
+  | { kind: "can-take" }
+  | { kind: "needs"; missing: number }
+  | { kind: "unknown" }
+
+export function courseStatus(
+  code: string,
+  tree: PrereqNode | null,
+  completed: ReadonlySet<string>,
+): CourseStatus {
+  if (completed.has(code)) return { kind: "completed" }
+  if (!tree) return { kind: "can-take" }
+  switch (evaluate(tree, completed)) {
+    case "met":
+      return { kind: "can-take" }
+    case "unknown":
+      return { kind: "unknown" }
+    case "unmet":
+      return { kind: "needs", missing: Math.max(1, missingGroups(tree, completed).length) }
+  }
+}

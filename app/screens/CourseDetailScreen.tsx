@@ -39,7 +39,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   const { terms } = getIndex()
   const course = getCourse(code)
   const { starred, toggle, add: addStarred } = useStarred()
-  const { completed, toggle: toggleCompleted } = useCompleted()
+  const { completed, toggle: toggleCompleted, add: addCompleted } = useCompleted()
 
   // Show the term the user was browsing if the course runs then, otherwise its newest term.
   const initialTerm =
@@ -80,6 +80,8 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
   // Starring a course you can't take yet asks whether to star its missing prerequisites too.
   // Unstarring, met or only-unverifiable prerequisites, and completed courses skip the prompt.
   const [starPromptOpen, setStarPromptOpen] = useState(false)
+  // Marking a course completed whose prerequisites aren't marked asks about those too.
+  const [completePromptOpen, setCompletePromptOpen] = useState(false)
   const missing = useMemo(
     () => (tree && !isCompleted ? missingGroups(tree, completed) : []),
     [tree, completed, isCompleted],
@@ -171,7 +173,10 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ checked: isCompleted }}
-            onPress={() => toggleCompleted(code)}
+            onPress={() => {
+              if (!isCompleted && missing.length > 0) setCompletePromptOpen(true)
+              else toggleCompleted(code)
+            }}
             testID="toggle-completed"
             style={({ pressed }) => [
               themed($completeButton),
@@ -365,9 +370,18 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         visible={starPromptOpen}
         code={code}
         groups={missing}
-        starred={starred}
+        already={starred}
         onConfirm={addStarred}
         onClose={() => setStarPromptOpen(false)}
+      />
+      <StarPrompt
+        kind="complete"
+        visible={completePromptOpen}
+        code={code}
+        groups={missing}
+        already={completed}
+        onConfirm={addCompleted}
+        onClose={() => setCompletePromptOpen(false)}
       />
     </Screen>
   )

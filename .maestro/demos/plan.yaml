@@ -38,6 +38,13 @@ appId: ${MAESTRO_APP_ID}
 - runFlow: { file: _pause.yaml, env: { MS: 1200 } }
 - tapOn:
     id: 'toggle-completed'
+- runFlow:
+    when:
+      visible:
+        id: 'complete-prompt'
+    commands:
+      - tapOn:
+          id: 'complete-only'
 - runFlow: { file: _pause.yaml, env: { MS: 1000 } }
 - tapOn: 'Back'
 - runFlow: { file: _pause.yaml, env: { MS: 2500 } }

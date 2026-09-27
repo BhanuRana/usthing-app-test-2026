@@ -12,6 +12,14 @@ onFlowStart:
     id: 'course-row-COMP 2011'
 - tapOn:
     id: 'toggle-completed'
+# Marking completed may ask about its prerequisites too; this flow keeps to one course.
+- runFlow:
+    when:
+      visible:
+        id: 'complete-prompt'
+    commands:
+      - tapOn:
+          id: 'complete-only'
 - tapOn: 'Back'
 # Refocus before typing: Android's keyboard drops its connection to the field on navigation.
 - tapOn: '.*Search code or title.*'
@@ -26,6 +34,14 @@ onFlowStart:
 - tapOn: 'COMP 2711, .*'
 - tapOn:
     id: 'toggle-completed'
+# Marking completed may ask about its prerequisites too; this flow keeps to one course.
+- runFlow:
+    when:
+      visible:
+        id: 'complete-prompt'
+    commands:
+      - tapOn:
+          id: 'complete-only'
 - tapOn: 'Back'
 - assertVisible: 'You meet the prerequisites'
 - takeScreenshot: completion-2-met
