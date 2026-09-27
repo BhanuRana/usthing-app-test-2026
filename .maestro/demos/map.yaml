@@ -1,0 +1,41 @@
+#flow: Demo · Map
+#intent:
+# The prerequisite map: open it, see the whole chain, select a course to light up its
+# lineage, zoom in, re-centre on it, and look at what a course leads to.
+appId: ${MAESTRO_APP_ID}
+---
+- runFlow: { file: _pause.yaml, env: { MS: 800 } }
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp 3711'
+- hideKeyboard
+- tapOn:
+    id: 'course-row-COMP 3711'
+- runFlow: { file: _pause.yaml, env: { MS: 900 } }
+- scrollUntilVisible:
+    element:
+      id: 'open-map'
+    direction: DOWN
+    speed: 40
+- runFlow: { file: _pause.yaml, env: { MS: 700 } }
+- tapOn:
+    id: 'open-map'
+- runFlow: { file: _pause.yaml, env: { MS: 2200 } }
+- tapOn:
+    id: 'map-fit'
+- runFlow: { file: _pause.yaml, env: { MS: 2000 } }
+- tapOn:
+    id: 'map-node-COMP 2011'
+- runFlow: { file: _pause.yaml, env: { MS: 2200 } }
+- tapOn: 'Zoom in'
+- runFlow: { file: _pause.yaml, env: { MS: 1800 } }
+- tapOn:
+    id: 'map-centre'
+- runFlow: { file: _pause.yaml, env: { MS: 2500 } }
+- tapOn: 'Back'
+- runFlow: { file: _pause.yaml, env: { MS: 1200 } }
+- tapOn:
+    id: 'map-mode-leads'
+- runFlow: { file: _pause.yaml, env: { MS: 2000 } }
+- tapOn:
+    id: 'map-mode-prerequisites'
+- runFlow: { file: _pause.yaml, env: { MS: 2200 } }

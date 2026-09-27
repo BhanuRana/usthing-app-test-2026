@@ -159,3 +159,16 @@ The department hue list swapped its plain blue for coral, so a badge never looks
 
 **Why:** The tree and the full chain show *everything* (DSAA 3072's chain is 22 courses); a student needs *a* route (3 courses). It reuses the parsed trees, stars and completed courses, costs 0.02 ms, and one tap stars the whole route.
 **Limits:** it plans by prerequisites only; it doesn't check which term a course runs in beyond showing its seasons, or credit loads, or co-requisites.
+
+### D20 · Prerequisite map (2026-09-27)
+
+**Decision:** A "Course map" screen, opened from any course page: the prerequisite chain and the courses it leads to, as a left-to-right graph you can pan, pinch-zoom and tap.
+- **Structure you can't see in lists:** "one of" / "all of" groups become small junctions where their options meet; loops are dashed amber arcs; the course glows navy; completed courses are green, starred ones gold; "Your path" is drawn as a thick line with step badges.
+- **Selecting** a course lights up its lineage (what it needs and what it feeds) and dims the rest; a card offers "Open course" and "Centre map here", which opens the map around that course, so you can walk the curriculum and come back.
+- **Layout** (`prereq/map.ts`, pure TypeScript): longest-path columns (every edge points right, junctions half a column before their course), then rows placed outwards from the course at the average height of their neighbours and spread to a minimum gap. Loops are found with a DFS and left out of the layout.
+- **Leads to is one level deep:** transitively it explodes (MATH 1020 reaches 295 courses in three steps). "Centre map here" is how you go further.
+- **Rendering:** nodes are views, edges are SVG paths, and the whole canvas is one transformed view driven by Reanimated. It's drawn at 1.5× and zoom stops at 100%: scaling a view *up* on iOS blurs its text, scaling down doesn't. Taps are hit-tested against the layout, so one gesture detector handles pan, pinch, double-tap and tap.
+- **First frame:** the whole map if it's readable that way; otherwise the course's neighbourhood (direct prerequisites, the course, what it leads to), falling back to prerequisites and the course when that's too wide.
+
+**Why:** The tree shows one branch at a time and the full chain is a flat list; neither shows *shape*: where branches merge, which courses are bottlenecks, where your route runs. Chains are small (median 0, 99th percentile 20 courses, largest 59 nodes with junctions), so the whole thing fits and lays out in well under a millisecond.
+**Cost:** `react-native-svg` (the standard Expo package; a native module, so the dev client was rebuilt) and a `GestureHandlerRootView` at the app root. **Considered:** Skia (smoother at huge sizes, but a heavier native dependency and unnecessary at these sizes) and a force-directed layout (organic but unstable between opens, and it hides the before/after direction that matters here).

@@ -92,3 +92,10 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 
 **14 · README media**
 - `.maestro/screenshots.yaml` regenerates the 9 screenshots; `.maestro/demos/` + `scripts/record-demo.sh` record the two demo GIFs (trimmed, 1.5x).
+
+**15 · Prerequisite map** (D20)
+- Sized it first on the real data: prerequisite chains are small (99th percentile 20 courses), "leads to" explodes (295 within three steps of MATH 1020), so leads-to is one level deep.
+- `buildCourseMap()` with 9 unit tests; a sweep of all 12,090 maps (every course × 3 modes) found no NaN positions, backward edges or overlaps; 0.14 ms for the largest.
+- Added `react-native-svg` and rebuilt the iOS dev client; added `GestureHandlerRootView` at the root (gestures outside a modal had none).
+- Found on the simulator: a tap's `maxDuration` expired while it waited to rule out a double-tap; the dot grid stopped at the map's edges; small maps opened cut off; selecting while zoomed right out stayed unreadable. All fixed.
+- Maestro flow `CourseMap` (58 steps). Full suite: 71 Jest tests, 7/7 Maestro flows on iOS. Map demo GIF and screenshot added.

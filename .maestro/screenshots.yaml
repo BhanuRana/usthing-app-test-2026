@@ -71,6 +71,17 @@ onFlowStart:
     duration: 1200
 - waitForAnimationToEnd
 - takeScreenshot: path
+
+# The prerequisite map, as it opens: the direct prerequisites, their groups and the path.
+- scrollUntilVisible:
+    element:
+      id: 'open-map'
+    direction: UP
+- tapOn:
+    id: 'open-map'
+- waitForAnimationToEnd
+- takeScreenshot: map
+- tapOn: 'Back'
 - tapOn: 'Back'
 
 # A real prerequisite cycle.
