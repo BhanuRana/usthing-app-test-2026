@@ -103,3 +103,8 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 **16 · Light only, and a real iPhone** (D21)
 - Pinned the theme to light (JS override plus native `userInterfaceStyle`); checked with the simulator in dark mode.
 - First install on a physical iPhone 15 (iOS 26.1): a signed Release build (free Apple ID, automatic signing, team passed to `xcodebuild` rather than committed), installed with `devicectl`.
+
+**17 · My Courses empty state; exploring forward on the map** (D22)
+- My Courses: the empty state was bottom-aligned by the "fixed" Screen preset (a gap above the header); fixed, and the template's doodle replaced with an SVG illustration and an "Explore courses" button. Stats now read starred, completed, credits.
+- Map: tapping a "leads to" course opens its next column (a trail, one branch at a time) with a breadcrumb back and "→ N" badges. 5 new tests; a sweep exploring up to five columns deep from every course found no layout problems (largest map 97 nodes).
+- Full suite: 76 Jest tests, 7/7 Maestro flows on iOS (one start-up flake in SearchAndOpenCourse passed on re-run).
