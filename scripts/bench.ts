@@ -8,6 +8,7 @@ import { join } from "node:path"
 import { performance } from "node:perf_hooks"
 
 import { evaluate } from "../app/data/prereq/evaluate"
+import { planPath } from "../app/data/prereq/plan"
 import { prereqTreeFor, prerequisiteChain } from "../app/data/prereq/traverse"
 import type { CatalogIndex, PrereqGraph } from "../app/data/types"
 
@@ -65,3 +66,10 @@ time("evaluate every course vs completed (4,030 trees)", () => {
   }
 })
 time('"Unlocked for me" filter', () => unlockedCourses(completed, 0))
+const none = new Set<string>()
+time('"Your path" to CENG 5840 (largest: 11 courses)', () =>
+  planPath(graph, "CENG 5840", none, none, 0),
+)
+time('"Your path" for every course (4,030 plans)', () => {
+  for (const c of index.courses) planPath(graph, c.code, completed, none)
+})

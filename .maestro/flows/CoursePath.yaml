@@ -1,0 +1,125 @@
+#flow: CoursePath
+#intent:
+# "Your path" on a course page: the courses still to take, in order. It shrinks as
+# courses are completed, follows a starred option in a "one of" group, stars the whole
+# path in one tap, notes a prerequisite loop, and doesn't appear with nothing to plan.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- tapOn:
+    id: 'filters-button'
+- tapOn: 'All terms'
+- tapOn:
+    id: 'filters-apply'
+
+# DSAA 3072: three steps, one course each.
+- tapOn: '.*Search code or title.*'
+- inputText: 'dsaa 3072'
+- tapOn:
+    id: 'course-row-DSAA 3072'
+- scrollUntilVisible:
+    element: 'Your path'
+    direction: DOWN
+- assertVisible: '3 courses to take first · 3 steps'
+- scrollUntilVisible:
+    element:
+      id: 'star-path'
+    direction: DOWN
+- assertVisible:
+    id: 'path-course-UFUG 1601'
+- assertVisible:
+    id: 'path-course-UFUG 2106'
+- assertVisible:
+    id: 'path-course-DSAA 3071'
+- takeScreenshot: course-path
+
+# Open step 1 from the path and complete it: the path drops to two steps.
+- tapOn:
+    id: 'path-course-UFUG 1601'
+- tapOn:
+    id: 'toggle-completed'
+- tapOn: 'Back'
+- scrollUntilVisible:
+    element: 'Your path'
+    direction: UP
+- assertVisible: '2 courses to take first · 2 steps'
+- assertVisible: "Counting UFUG 1601, which you've completed."
+- assertNotVisible:
+    id: 'path-course-UFUG 1601'
+
+# Star the whole path in one tap.
+- scrollUntilVisible:
+    element:
+      id: 'star-path'
+    direction: DOWN
+- tapOn:
+    id: 'star-path'
+- assertVisible: 'Whole path starred'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+- tapOn: 'My Courses.*'
+- assertVisible: 'STARRED · 3'
+- tapOn: 'Explore.*'
+
+# A starred option steers the path: COMP 3711 needs one of COMP 2711 / 2711H / MATH 2343.
+# By default the path takes COMP 2711; star MATH 2343 and it takes that instead.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- scrollUntilVisible:
+    element:
+      id: 'path-course-COMP 2711'
+    direction: DOWN
+- tapOn: 'Back'
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'math 2343'
+- tapOn:
+    id: 'course-row-MATH 2343'
+- tapOn: 'Star course'
+- runFlow:
+    when:
+      visible:
+        id: 'star-prompt'
+    commands:
+      - tapOn:
+          id: 'star-only'
+- assertVisible: 'Unstar course'
+- tapOn: 'Back'
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- scrollUntilVisible:
+    element:
+      id: 'path-course-MATH 2343'
+    direction: DOWN
+- assertNotVisible:
+    id: 'path-course-COMP 2711'
+- tapOn: 'Back'
+
+# A prerequisite loop is cut and noted.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'ucmp 6030'
+- tapOn:
+    id: 'course-row-UCMP 6030'
+- scrollUntilVisible:
+    element: 'Some of these prerequisites loop back.*'
+    direction: DOWN
+- assertVisible:
+    id: 'path-course-UCMP 6040'
+- tapOn: 'Back'
+
+# Nothing to plan: no card.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'comp 1021'
+- tapOn:
+    id: 'course-row-COMP 1021'
+- assertVisible: 'No prerequisites listed.'
+- assertNotVisible: 'Your path'

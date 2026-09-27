@@ -25,6 +25,8 @@ interface HeroHeaderProps {
    * band instead of the page background.
    */
   overscroll?: boolean
+  /** Draw the gold node on the rings. Off where content runs under it (course pages). */
+  node?: boolean
   style?: StyleProp<ViewStyle>
 }
 
@@ -33,13 +35,14 @@ interface HeroHeaderProps {
  */
 export function HeroHeader(props: HeroHeaderProps) {
   const { eyebrow, title, subtitle, right, children, safeTop = true, overscroll, style } = props
+  const { node = true } = props
   const { themed } = useAppTheme()
   const { top } = useSafeAreaInsets()
 
   return (
     <View style={[themed($band), safeTop && { paddingTop: top + 10 }, style]}>
       {overscroll && <View style={themed($overscroll)} />}
-      <HeroDecor />
+      <HeroDecor node={node} />
       {(title || right) && (
         <View style={$titleRow}>
           <View style={$flex}>
@@ -58,13 +61,13 @@ export function HeroHeader(props: HeroHeaderProps) {
 }
 
 /** Concentric rings with a gold node, clipped to the band's rounded corners. */
-function HeroDecor() {
+function HeroDecor({ node }: { node: boolean }) {
   const { themed } = useAppTheme()
   return (
     <View style={$decorClip} pointerEvents="none">
       <View style={themed([$ring, $ringOuter])} />
       <View style={themed([$ring, $ringInner])} />
-      <View style={themed($node)} />
+      {node && <View style={themed($node)} />}
     </View>
   )
 }

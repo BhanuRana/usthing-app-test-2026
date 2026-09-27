@@ -10,6 +10,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Chip } from "@/components/course/Chip"
+import { CoursePathView } from "@/components/course/CoursePathView"
 import { HeroButton, HeroHeader, HeroPill } from "@/components/course/HeroHeader"
 import { LinkedCodesText } from "@/components/course/LinkedCodesText"
 import { PrereqTree } from "@/components/course/PrereqTree"
@@ -20,6 +21,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { getCourse, getCourseVersion, getIndex, getPrereqGraph } from "@/data/catalog"
 import { evaluate, missingGroups, missingRequirements } from "@/data/prereq/evaluate"
+import { planPath } from "@/data/prereq/plan"
 import { prereqTreeFor, prerequisiteChain, unlockedBy } from "@/data/prereq/traverse"
 import type { PrereqNode } from "@/data/types"
 import { translate } from "@/i18n/translate"
@@ -60,6 +62,11 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
     return levels
   }, [graph, code, term])
   const unlocks = useMemo(() => unlockedBy(graph, code), [graph, code])
+  // Recomputed as courses are completed or starred: stars steer its "one of" choices.
+  const path = useMemo(
+    () => planPath(graph, code, completed, starred, term),
+    [graph, code, completed, starred, term],
+  )
 
   // push (not navigate) so following a chain of prerequisites builds a back stack.
   const openCourse = useCallback(
@@ -142,6 +149,7 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
         <HeroHeader
           safeTop={false}
           overscroll
+          node={false}
           eyebrow={course.prefix}
           title={code}
           style={themed($band)}
@@ -232,6 +240,26 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
             <Text size="xs" style={themed($dim)} tx="course:noPrerequisites" />
           )}
         </Section>
+
+        {path && (
+          <Section
+            icon="trail-sign-outline"
+            title={translate("path:title")}
+            subtitle={`${translate("path:courses", {
+              count: path.steps.flat().length,
+              n: path.steps.flat().length,
+            })} · ${translate("path:steps", { count: path.steps.length, n: path.steps.length })}`}
+          >
+            <CoursePathView
+              path={path}
+              target={code}
+              starred={starred}
+              hasCompleted={completed.size > 0}
+              onOpenCourse={openCourse}
+              onStarAll={addStarred}
+            />
+          </Section>
+        )}
 
         {chainLevels.length > 0 && (
           <Section
