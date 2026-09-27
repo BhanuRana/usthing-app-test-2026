@@ -107,6 +107,54 @@ describe("buildCourseMap", () => {
   })
 })
 
+describe("buildCourseMap with a trail", () => {
+  // A -> leads to B, C;  B -> D, E;  D -> F;  C -> B (so B is also one of C's leads).
+  const chain = graphOf({
+    B: c("A"),
+    C: c("A"),
+    D: c("B"),
+    E: c("B"),
+    F: c("D"),
+    X: all(c("C"), c("B")),
+  })
+
+  it("adds a column of leads-to courses for each course on the trail", () => {
+    const map = buildCourseMap(chain, "A", { trail: ["B", "D"] })
+    const n = byId(map)
+    expect(map.trail).toEqual(["B", "D"])
+    expect([n.B.rank, n.C.rank]).toEqual([1, 1])
+    expect([n.D.rank, n.E.rank, n.X.rank]).toEqual([2, 2, 2])
+    expect(n.F.rank).toBe(3)
+    for (const e of map.edges) expect(n[e.from].x).toBeLessThan(n[e.to].x)
+  })
+
+  it("only expands one branch: a sibling's leads stay hidden", () => {
+    const n = byId(buildCourseMap(chain, "A", { trail: ["C"] }))
+    expect(n.X.rank).toBe(2) // C's lead
+    expect(n.D).toBeUndefined() // B's leads aren't shown
+  })
+
+  it("stops at the first trail entry that isn't in the right column", () => {
+    expect(buildCourseMap(chain, "A", { trail: ["D"] }).trail).toEqual([]) // D isn't a direct lead
+    expect(buildCourseMap(chain, "A", { trail: ["B", "F"] }).trail).toEqual(["B"]) // F is D's
+  })
+
+  it("doesn't draw an expansion back into a course already on the map", () => {
+    // C leads to X, and X also needs B, which sits in C's own column: no edge B -> X from
+    // expanding C, and nothing moves.
+    const map = buildCourseMap(chain, "A", { trail: ["C"] })
+    const n = byId(map)
+    expect(n.B.rank).toBe(1)
+    for (const e of map.edges) expect(n[e.from].x).toBeLessThan(n[e.to].x)
+  })
+
+  it("ignores the trail when only prerequisites are shown", () => {
+    const map = buildCourseMap(chain, "B", { mode: "prerequisites", trail: ["D"] })
+    expect(map.trail).toEqual([])
+    expect(map.nodes.map((x) => x.id).sort()).toEqual(["A", "B"])
+  })
+})
+
 describe("lineage", () => {
   it("lights up what a course needs and what it feeds, not its siblings", () => {
     const map = buildCourseMap(g, "COMP 3711")

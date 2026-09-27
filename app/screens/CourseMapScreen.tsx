@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { LayoutChangeEvent, Pressable, TextStyle, View, ViewStyle } from "react-native"
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { LayoutChangeEvent, Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
@@ -17,8 +17,9 @@ import { HeroButton } from "@/components/course/HeroHeader"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { getCourse, getPrereqGraph } from "@/data/catalog"
-import { buildCourseMap, lineage, MapMode, MapNode } from "@/data/prereq/map"
+import { buildCourseMap, lineage, MAP_SIZES, MapMode, MapNode } from "@/data/prereq/map"
 import { planPath } from "@/data/prereq/plan"
+import { unlockedBy } from "@/data/prereq/traverse"
 import { translate } from "@/i18n/translate"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -57,8 +58,16 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const [mode, setMode] = useState<MapMode>("both")
   const [showPath, setShowPath] = useState(true)
   const [selected, setSelected] = useState<string>()
+  // Courses expanded to the right of the focus, one per column (see buildCourseMap).
+  const [trail, setTrail] = useState<string[]>([])
 
-  const map = useMemo(() => buildCourseMap(graph, code, { mode, term }), [graph, code, mode, term])
+  const map = useMemo(
+    () => buildCourseMap(graph, code, { mode, term, trail }),
+    [graph, code, mode, term, trail],
+  )
+  // The focus and the expanded trail, in order: the explored route through "leads to".
+  const explored = useMemo(() => [code, ...map.trail], [code, map.trail])
+  const leadsOf = useCallback((id: string) => unlockedBy(graph, id).length, [graph])
   const path = useMemo(
     () => planPath(graph, code, completed, starred, term),
     [graph, code, completed, starred, term],
@@ -95,6 +104,17 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const tx = useSharedValue(0)
   const ty = useSharedValue(0)
   const minZoom = useSharedValue(ABS_MIN_ZOOM)
+
+  // Expanding a column can grow the map up or left, which moves the content origin. Shift
+  // the pan by the same amount before the frame is drawn, so nothing on screen jumps.
+  const originRef = useRef(origin)
+  useLayoutEffect(() => {
+    const prev = originRef.current
+    if (prev.x === origin.x && prev.y === origin.y) return
+    tx.value = tx.value + (origin.x - prev.x) * scale.value
+    ty.value = ty.value + (origin.y - prev.y) * scale.value
+    originRef.current = origin
+  })
   // Space kept clear of the floating controls at the top and the card/legend at the bottom.
   const inset = { top: 64, bottom: 120 }
 
@@ -209,12 +229,41 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   }
 
   // Selecting a course glides it into view above the selection card, zooming in to a
-  // readable size first if the map is zoomed right out.
+  // readable size first if the map is zoomed right out. The glide runs after the next layout
+  // (a tap can add a column), and when the course has just been expanded it sits left of
+  // centre, so its new column is in view too.
   const selectedRef = useRef<string | undefined>(undefined)
-  const select = (id: string | undefined) => {
+  const [glide, setGlide] = useState<{ id: string; ahead: boolean }>()
+  const select = (id: string | undefined, ahead = false) => {
     selectedRef.current = id
     setSelected(id)
-    if (id) moveTo(centreOn(id, Math.max(scale.value, READABLE_ZOOM + 0.08), CARD_SPACE))
+    if (id) setGlide({ id, ahead })
+  }
+  useEffect(() => {
+    if (!glide || !nodeById.has(glide.id)) return
+    const t = centreOn(glide.id, Math.max(scale.value, READABLE_ZOOM + 0.08), CARD_SPACE)
+    const shift = glide.ahead ? (MAP_SIZES.column * K * t.s) / 2 : 0
+    moveTo({ ...t, x: t.x - shift })
+    setGlide(undefined)
+  }, [glide, nodeById, centreOn, moveTo, scale])
+
+  // Tapping a course on the "leads to" side also expands it: the trail keeps the columns
+  // before it and swaps in this course, so exploring is one branch at a time.
+  const open = (id: string) => {
+    const n = nodeById.get(id)
+    if (!n || n.kind !== "course") return
+    if (n.rank >= 1) {
+      setTrail([...map.trail.slice(0, n.rank - 1), id])
+      select(id, leadsOf(id) > 0)
+    } else {
+      select(id)
+    }
+  }
+
+  // Back along the explored route: keep it up to that course and glide there.
+  const goToRoute = (index: number) => {
+    setTrail(map.trail.slice(0, index))
+    select(explored[index], index > 0 || leadsOf(code) > 0)
   }
 
   // Tap: find the node under the finger (in content points), select it or clear.
@@ -226,8 +275,10 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
         px >= r.x - slop && px <= r.x + r.w + slop && py >= r.y - slop && py <= r.y + r.h + slop
       )
     })
-    if (hit?.kind === "course") select(hit.id === selectedRef.current ? undefined : hit.id)
-    else if (!hit) select(undefined)
+    if (hit?.kind === "course") {
+      if (hit.id === selectedRef.current) select(undefined)
+      else open(hit.id)
+    } else if (!hit) select(undefined)
   }
 
   const pinchStart = useSharedValue({ s: 1, x: 0, y: 0, fx: 0, fy: 0 })
@@ -331,7 +382,9 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
       d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
     }
     const inLineage = !!lit && lit.has(e.from) && lit.has(e.to) && !e.loop
-    const highlighted = !e.loop && edgeOnPath(e.from, e.to)
+    const onRoute =
+      !e.loop && explored.indexOf(e.to) > 0 && explored[explored.indexOf(e.to) - 1] === e.from
+    const highlighted = !e.loop && (onRoute || edgeOnPath(e.from, e.to))
     const dim = !!lit && !inLineage
     return {
       key: `${e.from}>${e.to}`,
@@ -446,10 +499,11 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
                   completed={completed.has(n.id)}
                   starred={starred.has(n.id)}
                   step={showPath ? pathStep.get(n.id) : undefined}
-                  onPathRing={showPath && pathStep.has(n.id)}
+                  onPathRing={(showPath && pathStep.has(n.id)) || map.trail.includes(n.id)}
+                  leads={n.rank >= 1 && !map.trail.includes(n.id) ? leadsOf(n.id) : 0}
                   dim={!!lit && !lit.has(n.id)}
                   isDark={isDark}
-                  onSelect={select}
+                  onSelect={open}
                 />
               ))}
             </Animated.View>
@@ -503,6 +557,43 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
           )}
         </View>
 
+        {map.trail.length > 0 && (
+          <View style={$crumbBar} pointerEvents="box-none">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={themed($crumbs)}
+              accessibilityLabel={translate("map:trail")}
+            >
+              {explored.map((id, i) => (
+                <View key={id} style={$crumbItem}>
+                  {i > 0 && <Ionicons name="chevron-forward" size={12} color={colors.textDim} />}
+                  <Pressable
+                    accessibilityRole="button"
+                    testID={`map-crumb-${id}`}
+                    onPress={() => goToRoute(i)}
+                    hitSlop={6}
+                    style={({ pressed }) => [
+                      themed($crumb),
+                      i === explored.length - 1 && themed($crumbLast),
+                      pressed && $pressed,
+                    ]}
+                  >
+                    <Text
+                      size="xxs"
+                      weight="semiBold"
+                      style={{
+                        color: i === explored.length - 1 ? colors.palette.neutral100 : colors.tint,
+                      }}
+                      text={id}
+                    />
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <View style={$zoomButtons} pointerEvents="box-none">
           <Pressable
             accessibilityRole="button"
@@ -541,6 +632,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
               loop={map.edges.some(
                 (e) => e.loop && (e.from === selectedNode.id || e.to === selectedNode.id),
               )}
+              leads={selectedNode.rank >= 0 ? leadsOf(selectedNode.id) : undefined}
               onOpen={() => navigation.push("CourseDetail", { code: selectedNode.id, term })}
               onCentre={() => navigation.push("CourseMap", { code: selectedNode.id, term })}
               onClose={() => select(undefined)}
@@ -565,6 +657,8 @@ interface CourseNodeProps {
   starred: boolean
   step?: number
   onPathRing: boolean
+  /** How many courses this one leads to, when tapping it would expand them (else 0). */
+  leads: number
   dim: boolean
   isDark: boolean
   onSelect: (id: string) => void
@@ -572,7 +666,7 @@ interface CourseNodeProps {
 
 const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
   const { node, rect, isFocus, isSelected, completed, starred, step, onPathRing, dim } = props
-  const { isDark, onSelect } = props
+  const { isDark, onSelect, leads } = props
   const {
     themed,
     theme: { colors },
@@ -641,6 +735,15 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
           <Text weight="bold" style={$stepText} text={String(step)} />
         </View>
       )}
+      {leads > 0 && (
+        <View
+          style={themed($leadsBadge)}
+          accessibilityLabel={translate("map:leadsBadge", { n: leads })}
+        >
+          <Ionicons name="arrow-forward" size={14} color={colors.palette.neutral100} />
+          <Text weight="bold" style={$leadsText} text={String(leads)} />
+        </View>
+      )}
     </View>
   )
 })
@@ -675,13 +778,16 @@ interface SelectedCardProps {
   starred: boolean
   step?: number
   loop: boolean
+  /** Courses it leads to, for courses on the right-hand side (undefined elsewhere). */
+  leads?: number
   onOpen: () => void
   onCentre: () => void
   onClose: () => void
 }
 
 function SelectedCard(props: SelectedCardProps) {
-  const { code, node, isFocus, completed, starred, step, loop, onOpen, onCentre, onClose } = props
+  const { code, node, isFocus, completed, starred, step, loop, leads, onOpen, onCentre } = props
+  const { onClose } = props
   const {
     themed,
     theme: { colors },
@@ -705,6 +811,13 @@ function SelectedCard(props: SelectedCardProps) {
       text: translate("map:otherRequirements"),
     },
     loop && { icon: "sync-outline" as const, color: colors.warning, text: translate("map:loop") },
+    leads !== undefined && {
+      icon: "arrow-forward-circle-outline" as const,
+      color: colors.tint,
+      text: leads
+        ? translate("map:leadsCount", { count: leads, n: leads })
+        : translate("map:leadsNone"),
+    },
   ].filter(Boolean) as { icon: "star"; color: string; text: string }[]
 
   return (
@@ -930,6 +1043,42 @@ const $stepBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderWidth: 3,
   borderColor: colors.background,
 })
+const $leadsBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  position: "absolute",
+  right: -18,
+  top: "50%",
+  marginTop: -15,
+  height: 30,
+  minWidth: 44,
+  paddingHorizontal: 8,
+  borderRadius: 15,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 2,
+  backgroundColor: colors.tint,
+  borderWidth: 3,
+  borderColor: colors.background,
+})
+const $leadsText: TextStyle = { color: "#FFFFFF", fontSize: 14, lineHeight: 18 }
+
+const $crumbBar: ViewStyle = { position: "absolute", top: 62, left: 0, right: 64 }
+const $crumbs: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.sm,
+  alignItems: "center",
+  gap: 4,
+})
+const $crumbItem: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4 }
+const $crumb: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 12,
+  backgroundColor: colors.surface,
+  borderWidth: 1,
+  borderColor: colors.tint,
+})
+const $crumbLast: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tint })
+
 const $stepText: TextStyle = { color: "#FFFFFF", fontSize: 14, lineHeight: 18 }
 
 const $junction: ThemedStyle<ViewStyle> = ({ colors }) => ({

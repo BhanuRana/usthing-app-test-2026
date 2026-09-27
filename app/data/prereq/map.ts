@@ -35,6 +35,8 @@ export interface CourseMap {
   bounds: { minX: number; minY: number; maxX: number; maxY: number }
   /** The course columns (integer ranks) present, left to right, with their x. */
   columns: { rank: number; x: number }[]
+  /** The part of the requested trail that was valid and expanded (see `buildCourseMap`). */
+  trail: string[]
 }
 
 export const MAP_SIZES = {
@@ -53,8 +55,11 @@ export const MAP_SIZES = {
  * Structure: every course in the prerequisite chain is expanded once. Its tree becomes edges
  * into it; a "one of" group with several options becomes a junction the options feed into,
  * and an "all of" group nested inside one becomes an "all" junction. Free text is left out
- * (the course is flagged instead). "Leads to" shows only the courses that list `focus`
- * directly: transitively it explodes (MATH 1020 reaches 295 courses in three steps).
+ * (the course is flagged instead). "Leads to" shows the courses that list `focus` directly;
+ * transitively it explodes (MATH 1020 reaches 295 courses in three steps), so going further
+ * is one branch at a time: `trail` names a course in the first "leads to" column, then one
+ * of *its* leads-to courses, and so on, and each adds a column with what it leads to. A
+ * trail entry that isn't in the column its position implies ends the trail there.
  *
  * Columns: a course sits one column left of the leftmost course it is a prerequisite for
  * (longest path), so every edge points right; junctions sit half a column before the course
@@ -68,9 +73,9 @@ export const MAP_SIZES = {
 export function buildCourseMap(
   graph: PrereqGraph,
   focus: string,
-  options: { mode?: MapMode; term?: number } = {},
+  options: { mode?: MapMode; term?: number; trail?: readonly string[] } = {},
 ): CourseMap {
-  const { mode = "both", term } = options
+  const { mode = "both", term, trail = [] } = options
   const nodes = new Map<string, Omit<MapNode, "x" | "y" | "rank">>()
   const edges: MapEdge[] = []
   const edgeKeys = new Set<string>()
@@ -139,10 +144,32 @@ export function buildCourseMap(
     }
   }
 
+  // Leads to, column by column along the trail. Their columns are known here; a course that
+  // is already on the map (a prerequisite, the focus, an earlier column) isn't moved, and an
+  // edge that would point back into it is left out.
+  const forward = new Map<string, number>()
+  const expanded: string[] = []
   if (mode !== "prerequisites") {
-    for (const code of unlockedBy(graph, focus)) {
-      addNode(code, "course")
-      addEdge(focus, code)
+    const addLeads = (from: string, column: number) => {
+      for (const code of unlockedBy(graph, from)) {
+        if (nodes.has(code)) {
+          const at = forward.get(code)
+          if (at === column || (at === undefined && from === focus)) addEdge(from, code)
+          continue
+        }
+        addNode(code, "course")
+        forward.set(code, column)
+        addEdge(from, code)
+      }
+    }
+    addLeads(focus, 1)
+    let previous = focus
+    for (const code of trail) {
+      const column = expanded.length + 1
+      if (forward.get(code) !== column || !edgeKeys.has(`${previous}>${code}`)) break
+      addLeads(code, column + 1)
+      expanded.push(code)
+      previous = code
     }
   }
 
@@ -167,7 +194,7 @@ export function buildCourseMap(
   walk(focus)
 
   // Ranks: focus 0; leads-to +1; prerequisites by longest path, half a column per junction.
-  const rank = new Map<string, number>([[focus, 0]])
+  const rank = new Map<string, number>([[focus, 0], ...forward])
   const step = (from: string, to: string) =>
     nodes.get(from)!.kind !== "course" || nodes.get(to)!.kind !== "course" ? 0.5 : 1
   const rankOf = (id: string, seen: Set<string>): number => {
@@ -243,7 +270,7 @@ export function buildCourseMap(
     .sort((a, b) => a - b)
     .map((r) => ({ rank: r, x: r * MAP_SIZES.column }))
 
-  return { focus, nodes: laidOut, edges, bounds, columns }
+  return { focus, nodes: laidOut, edges, bounds, columns, trail: expanded }
 }
 
 /**

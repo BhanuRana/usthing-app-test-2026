@@ -1,7 +1,8 @@
 #flow: CourseMap
 #intent:
 # The prerequisite map: open it from a course, fit, select a course (lineage + card),
-# switch sides, re-centre on another course and come back, open a course from the map,
+# switch sides, re-centre on another course, explore forward along "leads to" with the
+# breadcrumb, come back, open a course from the map,
 # the real prerequisite loop, and no map button when there's nothing to draw.
 appId: ${MAESTRO_APP_ID}
 onFlowStart:
@@ -56,9 +57,24 @@ onFlowStart:
     id: 'map-node-COMP 2011'
 - assertNotVisible:
     id: 'map-node-COMP 3711'
-- tapOn: 'Back'
+
+# Explore forward: tapping a "leads to" course opens a column with what *it* leads to,
+# and the breadcrumb tracks the route; tapping the first crumb goes back.
+- tapOn:
+    id: 'map-fit'
+- tapOn:
+    id: 'map-node-COMP 2012'
+- assertVisible: 'Leads to 23 courses'
 - assertVisible:
-    id: 'map-node-COMP 3711'
+    id: 'map-crumb-COMP 2012'
+- takeScreenshot: map-explore
+- tapOn:
+    id: 'map-crumb-COMP 2011'
+- assertNotVisible:
+    id: 'map-crumb-COMP 2012'
+- tapOn: 'Back'
+# Back on COMP 3711's map (the title), still centred on the selection.
+- assertVisible: 'COMP 3711'
 
 # Coming back keeps the selection; open that course from the map.
 - assertVisible:
