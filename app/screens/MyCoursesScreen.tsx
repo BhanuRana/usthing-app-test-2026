@@ -3,7 +3,7 @@ import { SectionList, TextStyle, View, ViewStyle } from "react-native"
 
 import { CourseRow } from "@/components/course/CourseRow"
 import { HeroHeader } from "@/components/course/HeroHeader"
-import { EmptyState } from "@/components/EmptyState"
+import { MyCoursesEmpty } from "@/components/course/MyCoursesEmpty"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { getCourse } from "@/data/catalog"
@@ -59,27 +59,30 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
 
   return (
     <Screen preset="fixed" systemBarStyle="light" contentContainerStyle={$flex}>
-      <HeroHeader eyebrow="HKUST" title={translate("myCourses:title")}>
-        <View style={themed($stats)}>
-          {stats.map((s) => (
-            <View
-              key={s.key}
-              style={themed($stat)}
-              accessible
-              accessibilityLabel={`${s.value} ${translate(s.label)}`}
-            >
-              <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
-              <Text size="xxs" style={themed($statLabel)} tx={s.label} />
-            </View>
-          ))}
-        </View>
+      {/* Nothing to count yet: a line about the screen instead of three zeros. */}
+      <HeroHeader
+        eyebrow="HKUST"
+        title={translate("myCourses:title")}
+        subtitle={isEmpty ? translate("myCourses:subtitle") : undefined}
+      >
+        {!isEmpty && (
+          <View style={themed($stats)}>
+            {stats.map((s) => (
+              <View
+                key={s.key}
+                style={themed($stat)}
+                accessible
+                accessibilityLabel={`${s.value} ${translate(s.label)}`}
+              >
+                <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
+                <Text size="xxs" style={themed($statLabel)} tx={s.label} />
+              </View>
+            ))}
+          </View>
+        )}
       </HeroHeader>
       {isEmpty ? (
-        <EmptyState
-          headingTx="myCourses:emptyHeading"
-          contentTx="myCourses:emptyContent"
-          style={themed($empty)}
-        />
+        <MyCoursesEmpty onExplore={() => navigation.navigate("Explore")} />
       ) : (
         <SectionList
           sections={sections}
@@ -153,9 +156,4 @@ const $none: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.sm,
-})
-
-const $empty: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingTop: spacing.xl,
-  paddingHorizontal: spacing.lg,
 })
