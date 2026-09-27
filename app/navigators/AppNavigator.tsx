@@ -7,6 +7,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import Config from "@/config"
 import { CourseDetailScreen } from "@/screens/CourseDetailScreen"
+import { CourseMapScreen } from "@/screens/CourseMapScreen"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { useAppTheme } from "@/theme/context"
 
@@ -41,6 +42,7 @@ const AppStack = () => {
     >
       <Stack.Screen name="Tabs" component={TabNavigator} />
       <Stack.Screen name="CourseDetail" component={CourseDetailScreen} />
+      <Stack.Screen name="CourseMap" component={CourseMapScreen} />
     </Stack.Navigator>
   )
 }

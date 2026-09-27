@@ -1,0 +1,99 @@
+#flow: CourseMap
+#intent:
+# The prerequisite map: open it from a course, fit, select a course (lineage + card),
+# switch sides, re-centre on another course and come back, open a course from the map,
+# the real prerequisite loop, and no map button when there's nothing to draw.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp 3711'
+- tapOn:
+    id: 'course-row-COMP 3711'
+- scrollUntilVisible:
+    element:
+      id: 'open-map'
+    direction: DOWN
+- tapOn:
+    id: 'open-map'
+- assertVisible: 'Course map'
+- assertVisible:
+    id: 'map-node-COMP 3711'
+
+# Fit the whole map, then select a prerequisite: its card shows where it sits on the path.
+- tapOn:
+    id: 'map-fit'
+- tapOn:
+    id: 'map-node-COMP 2011'
+- assertVisible:
+    id: 'map-selected'
+- assertVisible: 'Step 2 of your path'
+- takeScreenshot: map-selected
+
+# One side at a time.
+- tapOn:
+    id: 'map-mode-prerequisites'
+- assertNotVisible:
+    id: 'map-node-COMP 4411'
+- tapOn:
+    id: 'map-mode-leads'
+- assertVisible:
+    id: 'map-node-COMP 4411'
+- assertNotVisible:
+    id: 'map-node-COMP 2011'
+- tapOn:
+    id: 'map-mode-both'
+
+# Re-centre on COMP 2011, then come back to COMP 3711's map.
+- tapOn:
+    id: 'map-fit'
+- tapOn:
+    id: 'map-node-COMP 2011'
+- tapOn:
+    id: 'map-centre'
+- assertVisible:
+    id: 'map-node-COMP 2011'
+- assertNotVisible:
+    id: 'map-node-COMP 3711'
+- tapOn: 'Back'
+- assertVisible:
+    id: 'map-node-COMP 3711'
+
+# Coming back keeps the selection; open that course from the map.
+- assertVisible:
+    id: 'map-selected'
+- tapOn:
+    id: 'map-open-course'
+- assertVisible: 'Programming with C\+\+'
+- tapOn: 'Back'
+- tapOn: 'Back'
+- tapOn: 'Back'
+
+# The real loop: UCMP 6030 <-> UCMP 6040.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'ucmp 6030'
+- tapOn:
+    id: 'course-row-UCMP 6030'
+- scrollUntilVisible:
+    element:
+      id: 'open-map'
+    direction: DOWN
+- tapOn:
+    id: 'open-map'
+- tapOn:
+    id: 'map-node-UCMP 6040'
+- assertVisible: 'Part of a prerequisite loop'
+- tapOn: 'Back'
+- tapOn: 'Back'
+
+# Nothing to draw: no map button.
+- tapOn: '.*Search code or title.*'
+- eraseText: 20
+- inputText: 'acct 1610'
+- tapOn:
+    id: 'course-row-ACCT 1610'
+- assertVisible: 'No prerequisites listed.'
+- assertNotVisible:
+    id: 'open-map'

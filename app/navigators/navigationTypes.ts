@@ -18,6 +18,8 @@ export type AppStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList>
   /** `term` is an index into the catalogue's terms; omitted = the course's newest version. */
   CourseDetail: { code: string; term?: number }
+  /** The prerequisite map centred on `code`. */
+  CourseMap: { code: string; term?: number }
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<

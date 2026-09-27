@@ -8,6 +8,7 @@ import { join } from "node:path"
 import { performance } from "node:perf_hooks"
 
 import { evaluate } from "../app/data/prereq/evaluate"
+import { buildCourseMap } from "../app/data/prereq/map"
 import { planPath } from "../app/data/prereq/plan"
 import { prereqTreeFor, prerequisiteChain } from "../app/data/prereq/traverse"
 import type { CatalogIndex, PrereqGraph } from "../app/data/types"
@@ -72,4 +73,8 @@ time('"Your path" to CENG 5840 (largest: 11 courses)', () =>
 )
 time('"Your path" for every course (4,030 plans)', () => {
   for (const c of index.courses) planPath(graph, c.code, completed, none)
+})
+time("map of MATH 4996 (largest: 59 nodes)", () => buildCourseMap(graph, "MATH 4996"))
+time("map for every course (4,030 layouts)", () => {
+  for (const c of index.courses) buildCourseMap(graph, c.code)
 })

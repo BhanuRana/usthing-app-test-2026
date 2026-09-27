@@ -239,6 +239,24 @@ export function CourseDetailScreen({ route, navigation }: AppStackScreenProps<"C
           ) : (
             <Text size="xs" style={themed($dim)} tx="course:noPrerequisites" />
           )}
+          {(tree || unlocks.length > 0) && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint={translate("map:openHint")}
+              testID="open-map"
+              onPress={() => navigation.push("CourseMap", { code, term })}
+              style={({ pressed }) => [themed($mapButton), pressed && $pressed]}
+            >
+              <View style={themed($mapIcon)}>
+                <Ionicons name="git-network-outline" size={18} color={colors.palette.neutral100} />
+              </View>
+              <View style={$flex}>
+                <Text size="xs" weight="semiBold" style={{ color: colors.tint }} tx="map:open" />
+                <Text size="xxs" style={themed($dim)} tx="map:openHint" />
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.tint} />
+            </Pressable>
+          )}
         </Section>
 
         {path && (
@@ -508,6 +526,25 @@ const $completeButtonDone: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $pressed: ViewStyle = { opacity: 0.7 }
+
+const $mapButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.sm,
+  marginTop: spacing.sm,
+  padding: spacing.sm,
+  borderRadius: 14,
+  backgroundColor: colors.tintSoft,
+})
+
+const $mapIcon: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 34,
+  height: 34,
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.tint,
+})
 
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.sm,
