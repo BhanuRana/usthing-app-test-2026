@@ -13,6 +13,23 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
   </tr>
 </table>
 
+**Contents:** [At a glance](#at-a-glance) · [What it does](#what-it-does) · [Setup](#setup-and-running) · [Architecture](#architecture) · [Dataset](#how-the-dataset-is-processed-searched-and-filtered) · [Prerequisite traversal](#how-prerequisite-traversal-works) · [Performance](#performance) · [Testing](#testing) · [Limitations](#assumptions-and-limitations) · [Next](#what-id-do-next)
+
+## At a glance
+
+| Area | Delivered | Where |
+|---|---|---|
+| Local dataset, Ignite template | `courses.json` preprocessed at build time; the template's components, theme and i18n kept | [`scripts/build-data.ts`](scripts/build-data.ts), [dataset](#how-the-dataset-is-processed-searched-and-filtered) |
+| Browse and search | 4,030 courses; code and title search, ranked, with highlighted matches | [`catalog.ts`](app/data/catalog.ts) · Explore · `SearchAndOpenCourse` flow |
+| Filters | Term, level, department, "Unlocked for me", with a live result count | [`FilterSheet.tsx`](app/components/course/FilterSheet.tsx) · `FilterAndStar` flow |
+| Course details | Per-term content: credits, description, prerequisites, co-requisites, exclusions, attributes, outcomes | Course page |
+| **Prerequisite explorer** (required challenge) | Expandable AND/OR tree, tap to open any course, full chain, "Leads to" | [`parse.ts`](app/data/prereq/parse.ts), [`traverse.ts`](app/data/prereq/traverse.ts) · [how it works](#how-prerequisite-traversal-works) |
+| Cycles and missing courses | Real cycle (UCMP 6030 ↔ 6040) marked, not followed; missing courses and free text shown as such | `PrerequisiteCycle` flow · traversal tests |
+| Optional features | Starring, completed courses and eligibility, "Unlocked for me", My Courses stats | [`evaluate.ts`](app/data/prereq/evaluate.ts) · `CompletionUnlocks` flow |
+| Beyond the brief | Star with prerequisites; "Your path", a planned route to any course | [`plan.ts`](app/data/prereq/plan.ts) · `StarPrerequisites`, `CoursePath` flows |
+| Documentation | Setup, architecture, data processing, traversal, assumptions; every decision and the build log | This README · [DECISIONS](docs/DECISIONS.md) · [BUILD-LOG](docs/BUILD-LOG.md) |
+| Quality | 62 Jest tests, 6 Maestro flows, data sweeps over every course and term, benchmarks | [Testing](#testing) · [Performance](#performance) |
+
 ## What it does
 
 **Browse and search** 4,030 courses across 4 terms and 129 departments.
@@ -113,6 +130,29 @@ maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 6 en
 ---
 
 ## Architecture
+
+```mermaid
+flowchart LR
+  subgraph build["Build time · yarn data"]
+    raw["courses.json<br/>28 MB · 15,178 rows"] --> script["scripts/build-data.ts<br/>merge terms · parse prerequisites"]
+  end
+  script --> idx["index.json<br/>one row per course"]
+  script --> pre["prereqs.json<br/>787 parsed trees + reverse index"]
+  script --> det["details/DEPT.json × 129<br/>loaded on first open"]
+  subgraph data["app/data · plain TypeScript, no React"]
+    cat["catalog.ts<br/>search · filters · unlocked"]
+    trav["prereq/traverse.ts<br/>per-term trees · cycles · chain"]
+    ev["prereq/evaluate.ts<br/>eligibility · what's missing"]
+    plan["prereq/plan.ts<br/>Your path"]
+  end
+  idx --> cat
+  det --> cat
+  pre --> trav --> ev --> plan
+  prefs[("MMKV<br/>starred · completed · term")]
+  cat & trav & ev & plan & prefs --> ui["Screens<br/>Explore · Course · My Courses"]
+```
+
+The same `app/data` code runs in the build script, the app, the Jest tests and the benchmark.
 
 ```
 scripts/build-data.ts        courses.json -> app/data/generated/   (build time, Node)
@@ -233,6 +273,14 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 - **Eligibility only checks course prerequisites.** Co-requisites, exclusions, grade conditions ("Grade A- or above") and non-course requirements aren't enforced. Grade notes are shown, and text requirements make the result "can't verify" rather than a guess.
 - **Section data (quota, enrolment, waitlist) isn't shown**, per the 2026-09-24 brief update. The dataset doesn't include it.
 - **Tested on simulators and emulators only**, not physical devices. Android hasn't been re-run since D16–D19 (see [Platforms tested](#platforms-tested)).
+
+## What I'd do next
+
+1. **Re-run Android, and test on physical devices.** Android last passed before D16–D19, and nothing has run on real hardware yet.
+2. **Schedule "Your path" into real terms.** It already knows each course's seasons and the order; placing steps into upcoming terms under a credit cap would turn the route into a study plan.
+3. **Co-requisites and exclusions** in eligibility and the path. They're shown on course pages but not enforced.
+4. **Typo-tolerant search.** Search is exact-substring on normalised codes and words; "algorthms" finds nothing.
+5. **Shareable course links.** The navigator already has a `course/:code` route; exposing it would let students send each other a course.
 
 ## Documentation
 
