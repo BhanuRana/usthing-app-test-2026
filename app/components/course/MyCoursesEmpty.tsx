@@ -1,5 +1,5 @@
 import { ComponentProps } from "react"
-import { Pressable, TextStyle, View, ViewStyle } from "react-native"
+import { Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import Svg, { Circle, G, Path, Rect } from "react-native-svg"
 
@@ -19,7 +19,12 @@ export function MyCoursesEmpty({ onExplore }: { onExplore: () => void }) {
   } = useAppTheme()
 
   return (
-    <View style={themed($container)} testID="my-courses-empty">
+    // Centred when it fits; scrolls on a short screen (iPhone SE) rather than clipping the button.
+    <ScrollView
+      style={$scroll}
+      contentContainerStyle={themed($container)}
+      testID="my-courses-empty"
+    >
       <Illustration />
       <View style={$copy}>
         <Text preset="subheading" style={$center} tx="myCourses:emptyHeading" />
@@ -54,7 +59,7 @@ export function MyCoursesEmpty({ onExplore }: { onExplore: () => void }) {
           tx="myCourses:emptyAction"
         />
       </Pressable>
-    </View>
+    </ScrollView>
   )
 }
 
@@ -164,8 +169,10 @@ const $grow: ViewStyle = { flex: 1 }
 const $center: TextStyle = { textAlign: "center" }
 const $pressed: ViewStyle = { opacity: 0.8 }
 
+const $scroll: ViewStyle = { flex: 1 }
+
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+  flexGrow: 1,
   alignItems: "center",
   justifyContent: "center",
   paddingHorizontal: spacing.lg,

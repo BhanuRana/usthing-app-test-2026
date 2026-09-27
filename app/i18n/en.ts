@@ -76,7 +76,6 @@ const en = {
     title: "My Courses",
     starred: "Starred",
     completed: "Completed",
-    subtitle: "Your starred and completed courses live here",
     emptyHeading: "Your plan starts here",
     emptyContent:
       "Save the courses you're aiming for and tick off the ones you've done. We'll show what you can take next, and the path to get there.",

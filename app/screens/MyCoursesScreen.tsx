@@ -60,27 +60,20 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
 
   return (
     <Screen preset="fixed" systemBarStyle="light" contentContainerStyle={$flex}>
-      {/* Nothing to count yet: a line about the screen instead of three zeros. */}
-      <HeroHeader
-        eyebrow="HKUST"
-        title={translate("myCourses:title")}
-        subtitle={isEmpty ? translate("myCourses:subtitle") : undefined}
-      >
-        {!isEmpty && (
-          <View style={themed($stats)}>
-            {stats.map((s) => (
-              <View
-                key={s.key}
-                style={themed($stat)}
-                accessible
-                accessibilityLabel={`${s.value} ${translate(s.label)}`}
-              >
-                <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
-                <Text size="xxs" style={themed($statLabel)} tx={s.label} />
-              </View>
-            ))}
-          </View>
-        )}
+      <HeroHeader eyebrow="HKUST" title={translate("myCourses:title")}>
+        <View style={themed($stats)}>
+          {stats.map((s) => (
+            <View
+              key={s.key}
+              style={themed($stat)}
+              accessible
+              accessibilityLabel={`${s.value} ${translate(s.label)}`}
+            >
+              <Text preset="heading" size="lg" style={themed($statValue)} text={s.value} />
+              <Text size="xxs" style={themed($statLabel)} tx={s.label} />
+            </View>
+          ))}
+        </View>
       </HeroHeader>
       {isEmpty ? (
         <MyCoursesEmpty onExplore={() => navigation.navigate("Explore")} />
