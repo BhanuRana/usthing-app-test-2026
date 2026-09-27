@@ -166,6 +166,8 @@ const en = {
     leadsNone: "Doesn't lead to any other course",
     leadsBadge: "Leads to {{n}} more",
     trail: "Explored path",
+    keyShow: "Show the map key",
+    keyHide: "Hide the map key",
     legendCourse: "This course",
     legendCompleted: "Completed",
     legendStarred: "Starred",

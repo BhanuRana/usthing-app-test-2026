@@ -58,6 +58,8 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const [mode, setMode] = useState<MapMode>("both")
   const [showPath, setShowPath] = useState(true)
   const [selected, setSelected] = useState<string>()
+  // The key (what the colours and lines mean) stays out of the way until asked for.
+  const [keyOpen, setKeyOpen] = useState(false)
   // Courses expanded to the right of the focus, one per column (see buildCourseMap).
   const [trail, setTrail] = useState<string[]>([])
 
@@ -116,7 +118,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
     originRef.current = origin
   })
   // Space kept clear of the floating controls at the top and the card/legend at the bottom.
-  const inset = { top: 64, bottom: 120 }
+  const inset = { top: 64, bottom: 84 }
 
   const fitTransform = useCallback(() => {
     const availW = viewport.w - 24
@@ -638,7 +640,28 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
               onClose={() => select(undefined)}
             />
           ) : (
-            <Legend showPath={showPath && !!path && mode !== "leads"} />
+            <View style={$keyArea} pointerEvents="box-none">
+              {keyOpen && <Legend showPath={showPath && !!path && mode !== "leads"} />}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={translate(keyOpen ? "map:keyHide" : "map:keyShow")}
+                accessibilityState={{ expanded: keyOpen }}
+                testID="map-key-toggle"
+                onPress={() => setKeyOpen((v) => !v)}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  themed($roundButton),
+                  keyOpen && themed($roundButtonOn),
+                  pressed && $pressed,
+                ]}
+              >
+                <Ionicons
+                  name={keyOpen ? "close" : "information"}
+                  size={keyOpen ? 20 : 22}
+                  color={keyOpen ? colors.palette.neutral100 : colors.tint}
+                />
+              </Pressable>
+            </View>
           )}
         </View>
       </View>
@@ -1138,6 +1161,10 @@ const $pathToggle: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
 })
 const $pathToggleOn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tint })
 
+const $keyArea: ViewStyle = { gap: 10, alignItems: "flex-start" }
+
+const $roundButtonOn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tint })
+
 const $zoomButtons: ViewStyle = { position: "absolute", right: 14, top: 64, gap: 10 }
 
 const $roundButton: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
@@ -1191,6 +1218,7 @@ const $secondary: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $legend: ThemedStyle<ViewStyle> = ({ colors, isDark, spacing }) => ({
+  alignSelf: "stretch",
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.sm,
   gap: 6,
