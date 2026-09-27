@@ -4,13 +4,15 @@ import { Ionicons } from "@expo/vector-icons"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   Easing,
+  FadeIn,
+  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withDecay,
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import Svg, { Circle, Defs, Path, Pattern, Rect } from "react-native-svg"
+import Svg, { Circle, Defs, G, Path, Pattern, Rect } from "react-native-svg"
 import { scheduleOnRN } from "react-native-worklets"
 
 import { HeroButton } from "@/components/course/HeroHeader"
@@ -25,6 +27,7 @@ import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { departmentColor } from "@/theme/departmentColors"
 import type { ThemedStyle } from "@/theme/types"
+import { storage } from "@/utils/storage"
 import { useCompleted, useStarred } from "@/utils/usePreferences"
 
 /**
@@ -41,6 +44,9 @@ const READABLE_ZOOM = 0.42
 const EASE = { duration: 380, easing: Easing.out(Easing.cubic) }
 /** Height kept clear at the bottom while the selection card is showing. */
 const CARD_SPACE = 220
+/** How much of the map (in points) always stays on screen when panning. */
+const KEEP = 120
+const TIP_SEEN = "map.tipSeen"
 
 type Box = { x: number; y: number; w: number; h: number }
 
@@ -60,6 +66,14 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const [selected, setSelected] = useState<string>()
   // The key (what the colours and lines mean) stays out of the way until asked for.
   const [keyOpen, setKeyOpen] = useState(false)
+  // The first map a user opens shows how it works, once, for a few seconds.
+  const [tip, setTip] = useState(() => !storage.getBoolean(TIP_SEEN))
+  useEffect(() => {
+    if (!tip) return undefined
+    storage.set(TIP_SEEN, true)
+    const t = setTimeout(() => setTip(false), 5000)
+    return () => clearTimeout(t)
+  }, [tip])
   // Courses expanded to the right of the focus, one per column (see buildCourseMap).
   const [trail, setTrail] = useState<string[]>([])
 
@@ -262,6 +276,25 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
     }
   }
 
+  // Where a course sits relative to the one the map is about, in words, for the card.
+  const relationOf = (n: MapNode): string => {
+    if (n.id === code) return translate("map:relFocus")
+    if (n.rank < 0) {
+      const feedsFocus = (to: string) =>
+        to === code ||
+        (nodeById.get(to)?.kind !== "course" &&
+          map.edges.some((f) => f.from === to && f.to === code))
+      const direct = map.edges.some((e) => e.from === n.id && !e.loop && feedsFocus(e.to))
+      return direct
+        ? translate("map:relDirect", { code })
+        : translate("map:relBefore", { n: -n.rank, code })
+    }
+    const parent = map.edges.find(
+      (e) => e.to === n.id && !e.loop && (nodeById.get(e.from)?.rank ?? -1) >= 0,
+    )?.from
+    return translate("map:relBuildsOn", { code: parent ?? code })
+  }
+
   // Back along the explored route: keep it up to that course and glide there.
   const goToRoute = (index: number) => {
     setTrail(map.trail.slice(0, index))
@@ -301,18 +334,36 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
       ty.value = e.focalY - cy * s
     })
 
+  // Panning and its momentum stop while some of the map is still on screen, so a fling can
+  // never leave you looking at empty dots.
+  const extent = useSharedValue({ w: 0, h: 0, vw: 0, vh: 0 })
+  useEffect(() => {
+    extent.value = { w: content.w, h: content.h, vw: viewport.w, vh: viewport.h }
+  }, [content.w, content.h, viewport.w, viewport.h, extent])
   const pan = Gesture.Pan()
     .averageTouches(true)
     .onStart(() => {
       panStart.value = { x: tx.value, y: ty.value }
     })
     .onUpdate((e) => {
-      tx.value = panStart.value.x + e.translationX
-      ty.value = panStart.value.y + e.translationY
+      const { w, h, vw, vh } = extent.value
+      const s = scale.value
+      tx.value = Math.min(vw - KEEP, Math.max(KEEP - w * s, panStart.value.x + e.translationX))
+      ty.value = Math.min(vh - KEEP, Math.max(KEEP - h * s, panStart.value.y + e.translationY))
     })
     .onEnd((e) => {
-      tx.value = withDecay({ velocity: e.velocityX, deceleration: 0.994 })
-      ty.value = withDecay({ velocity: e.velocityY, deceleration: 0.994 })
+      const { w, h, vw, vh } = extent.value
+      const s = scale.value
+      tx.value = withDecay({
+        velocity: e.velocityX,
+        deceleration: 0.994,
+        clamp: [KEEP - w * s, vw - KEEP],
+      })
+      ty.value = withDecay({
+        velocity: e.velocityY,
+        deceleration: 0.994,
+        clamp: [KEEP - h * s, vh - KEEP],
+      })
     })
 
   const doubleTap = Gesture.Tap()
@@ -366,31 +417,34 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const paths = map.edges.map((e) => {
     const a = rectOf(nodeById.get(e.from)!)
     const b = rectOf(nodeById.get(e.to)!)
-    let d: string
-    if (e.loop) {
-      // Curves back over the top: out of the right side, into the left side.
-      const x1 = a.x + a.w
-      const y1 = a.y + a.h / 2
-      const x2 = b.x
-      const y2 = b.y + b.h / 2
-      const lift = Math.max(a.h, b.h) * 1.4
-      d = `M ${x1} ${y1} C ${x1 + 120} ${y1 - lift}, ${x2 - 120} ${y2 - lift}, ${x2} ${y2}`
-    } else {
-      const x1 = a.x + a.w
-      const y1 = a.y + a.h / 2
-      const x2 = b.x
-      const y2 = b.y + b.h / 2
-      const dx = Math.max(40, (x2 - x1) * 0.5)
-      d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
-    }
     const inLineage = !!lit && lit.has(e.from) && lit.has(e.to) && !e.loop
     const onRoute =
       !e.loop && explored.indexOf(e.to) > 0 && explored[explored.indexOf(e.to) - 1] === e.from
     const highlighted = !e.loop && (onRoute || edgeOnPath(e.from, e.to))
+    const width = inLineage ? 4 : highlighted ? 4.5 : 2.2
+    // Every edge ends in an arrowhead at the course it feeds, so the direction reads without
+    // relying on left-to-right; the line stops at the arrow's base.
+    const head = { l: 8 + width * 1.6, w: 4 + width }
+    const x1 = a.x + a.w
+    const y1 = a.y + a.h / 2
+    const x2 = b.x
+    const y2 = b.y + b.h / 2
+    const end = x2 - head.l + 1
+    let d: string
+    if (e.loop) {
+      // Curves back over the top: out of the right side, into the left side.
+      const lift = Math.max(a.h, b.h) * 1.4
+      d = `M ${x1} ${y1} C ${x1 + 120} ${y1 - lift}, ${end - 120} ${y2 - lift}, ${end} ${y2}`
+    } else {
+      const dx = Math.max(40, (end - x1) * 0.5)
+      d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${end - dx} ${y2}, ${end} ${y2}`
+    }
+    const arrow = `M ${x2 - head.l} ${y2 - head.w} L ${x2} ${y2} L ${x2 - head.l} ${y2 + head.w} Z`
     const dim = !!lit && !inLineage
     return {
       key: `${e.from}>${e.to}`,
       d,
+      arrow,
       loop: e.loop,
       stroke: e.loop
         ? colors.warning
@@ -399,7 +453,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
           : isDark
             ? colors.palette.neutral400
             : colors.palette.neutral400,
-      width: inLineage ? 4 : highlighted ? 4.5 : 2.2,
+      width,
       opacity: dim ? 0.12 : e.loop ? 0.9 : inLineage || highlighted ? 1 : 0.85,
       // Draw highlighted edges last, on top.
       z: inLineage || highlighted ? 1 : 0,
@@ -455,16 +509,17 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
             >
               <Svg width={content.w} height={content.h}>
                 {paths.map((p) => (
-                  <Path
-                    key={p.key}
-                    d={p.d}
-                    stroke={p.stroke}
-                    strokeWidth={p.width}
-                    strokeOpacity={p.opacity}
-                    strokeDasharray={p.loop ? "10 8" : undefined}
-                    strokeLinecap="round"
-                    fill="none"
-                  />
+                  <G key={p.key} opacity={p.opacity}>
+                    <Path
+                      d={p.d}
+                      stroke={p.stroke}
+                      strokeWidth={p.width}
+                      strokeDasharray={p.loop ? "10 8" : undefined}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                    <Path d={p.arrow} fill={p.stroke} />
+                  </G>
                 ))}
               </Svg>
 
@@ -488,7 +543,13 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
               {map.nodes
                 .filter((n) => n.kind !== "course")
                 .map((n) => (
-                  <Junction key={n.id} node={n} rect={rectOf(n)} dim={!!lit && !lit.has(n.id)} />
+                  <Junction
+                    key={n.id}
+                    node={n}
+                    rect={rectOf(n)}
+                    dim={!!lit && !lit.has(n.id)}
+                    options={map.edges.filter((e) => e.to === n.id).length}
+                  />
                 ))}
 
               {courseNodes.map((n) => (
@@ -627,6 +688,7 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
             <SelectedCard
               code={selectedNode.id}
               node={selectedNode}
+              relation={relationOf(selectedNode)}
               isFocus={selectedNode.id === code}
               completed={completed.has(selectedNode.id)}
               starred={starred.has(selectedNode.id)}
@@ -641,6 +703,17 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
             />
           ) : (
             <View style={$keyArea} pointerEvents="box-none">
+              {tip && !keyOpen && (
+                <Animated.View
+                  entering={FadeIn.duration(300)}
+                  exiting={FadeOut.duration(300)}
+                  style={themed($tip)}
+                  pointerEvents="none"
+                >
+                  <Ionicons name="hand-left-outline" size={15} color={colors.palette.neutral100} />
+                  <Text size="xxs" weight="medium" style={$tipText} tx="map:tip" />
+                </Animated.View>
+              )}
               {keyOpen && <Legend showPath={showPath && !!path && mode !== "leads"} />}
               <Pressable
                 accessibilityRole="button"
@@ -670,6 +743,19 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
 }
 
 // --- Nodes -----------------------------------------------------------------------------------
+
+/** Fades a node down when it's outside the selected course's lineage, and back up. */
+function useDimStyle(dim: boolean) {
+  const opacity = useSharedValue(dim ? DIMMED : 1)
+  useEffect(() => {
+    opacity.value = withTiming(dim ? DIMMED : 1, { duration: 220 })
+  }, [dim, opacity])
+  return useAnimatedStyle(() => ({ opacity: opacity.value }))
+}
+
+/** New columns fade in; collapsed ones fade out. */
+const NODE_IN = FadeIn.duration(260)
+const NODE_OUT = FadeOut.duration(160)
 
 interface CourseNodeProps {
   node: MapNode
@@ -706,8 +792,15 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
     .filter(Boolean)
     .join(", ")
 
+  const $dimAnimated = useDimStyle(dim)
+
+  // Two layers: the outer one fades in and out with the column, the inner one dims with
+  // the selection (both animate opacity, so they can't share a view).
   return (
-    <View
+    <Animated.View
+      entering={NODE_IN}
+      exiting={NODE_OUT}
+      style={[$place, { left: rect.x, top: rect.y, width: rect.w, height: rect.h }]}
       accessible
       accessibilityRole="button"
       accessibilityLabel={[translate("map:nodeLabel", { code: node.id, title }), status]
@@ -716,78 +809,83 @@ const CourseNode = memo(function CourseNode(props: CourseNodeProps) {
       accessibilityState={{ selected: isSelected }}
       onAccessibilityTap={() => onSelect(node.id)}
       testID={`map-node-${node.id}`}
-      style={[
-        themed($node),
-        { left: rect.x, top: rect.y, width: rect.w, height: rect.h },
-        !course && themed($nodeMissing),
-        completed && !isFocus && themed($nodeCompleted),
-        onPathRing && !completed && themed($nodeOnPath),
-        isFocus && themed($nodeFocus),
-        isSelected && themed($nodeSelected),
-        dim && $dimmed,
-      ]}
     >
-      {!isFocus && <View style={[$stripe, { backgroundColor: stripe }]} />}
-      <View style={$nodeBody}>
-        <View style={$nodeTop}>
-          <Text
-            weight="bold"
-            style={[$nodeCode, { color: isFocus ? fg : colors.tint }]}
-            text={node.id}
-          />
-          {completed && (
-            <Ionicons
-              name="checkmark-circle"
-              size={22}
-              color={isFocus ? colors.palette.neutral100 : colors.success}
+      <Animated.View
+        style={[
+          themed($node),
+          !course && themed($nodeMissing),
+          completed && !isFocus && themed($nodeCompleted),
+          onPathRing && !completed && themed($nodeOnPath),
+          isFocus && themed($nodeFocus),
+          isSelected && themed($nodeSelected),
+          $dimAnimated,
+        ]}
+      >
+        {!isFocus && <View style={[$stripe, { backgroundColor: stripe }]} />}
+        <View style={$nodeBody}>
+          <View style={$nodeTop}>
+            <Text
+              weight="bold"
+              style={[$nodeCode, { color: isFocus ? fg : colors.tint }]}
+              text={node.id}
             />
-          )}
-          {starred && <Ionicons name="star" size={20} color={colors.star} />}
-          {node.otherRequirements && (
-            <Text style={[$nodeExtra, { color: isFocus ? fg : colors.warning }]} text="+" />
-          )}
+            {completed && (
+              <Ionicons
+                name="checkmark-circle"
+                size={22}
+                color={isFocus ? colors.palette.neutral100 : colors.success}
+              />
+            )}
+            {starred && <Ionicons name="star" size={20} color={colors.star} />}
+            {node.otherRequirements && (
+              <Text style={[$nodeExtra, { color: isFocus ? fg : colors.warning }]} text="+" />
+            )}
+          </View>
+          <Text
+            numberOfLines={1}
+            style={[$nodeTitle, { color: isFocus ? colors.palette.neutral100 : colors.textDim }]}
+            text={title}
+          />
         </View>
-        <Text
-          numberOfLines={1}
-          style={[$nodeTitle, { color: isFocus ? colors.palette.neutral100 : colors.textDim }]}
-          text={title}
-        />
-      </View>
-      {step !== undefined && (
-        <View style={themed($stepBadge)}>
-          <Text weight="bold" style={$stepText} text={String(step)} />
-        </View>
-      )}
-      {leads > 0 && (
-        <View
-          style={themed($leadsBadge)}
-          accessibilityLabel={translate("map:leadsBadge", { n: leads })}
-        >
-          <Ionicons name="arrow-forward" size={14} color={colors.palette.neutral100} />
-          <Text weight="bold" style={$leadsText} text={String(leads)} />
-        </View>
-      )}
-    </View>
+        {step !== undefined && (
+          <View style={themed($stepBadge)}>
+            <Text weight="bold" style={$stepText} text={String(step)} />
+          </View>
+        )}
+        {leads > 0 && (
+          <View
+            style={themed($leadsBadge)}
+            accessibilityLabel={translate("map:leadsBadge", { n: leads })}
+          >
+            <Ionicons name="arrow-forward" size={14} color={colors.palette.neutral100} />
+            <Text weight="bold" style={$leadsText} text={String(leads)} />
+          </View>
+        )}
+      </Animated.View>
+    </Animated.View>
   )
 })
 
-function Junction({ node, rect, dim }: { node: MapNode; rect: Box; dim: boolean }) {
+function Junction(props: { node: MapNode; rect: Box; dim: boolean; options: number }) {
+  const { node, rect, dim, options } = props
   const { themed } = useAppTheme()
+  const $dimAnimated = useDimStyle(dim)
   return (
-    <View
-      style={[
-        themed($junction),
-        { left: rect.x, top: rect.y, width: rect.w, height: rect.h },
-        dim && $dimmed,
-      ]}
+    <Animated.View
+      entering={NODE_IN}
+      exiting={NODE_OUT}
+      style={[$place, { left: rect.x, top: rect.y, width: rect.w, height: rect.h }]}
       pointerEvents="none"
     >
-      <Text
-        weight="bold"
-        style={themed($junctionText)}
-        tx={node.kind === "any" ? "map:oneOf" : "map:allOf"}
-      />
-    </View>
+      <Animated.View style={[themed($junction), $dimAnimated]}>
+        <Text
+          weight="bold"
+          style={themed($junctionText)}
+          tx={node.kind === "any" ? "map:oneOf" : "map:allOf"}
+          txOptions={{ n: options }}
+        />
+      </Animated.View>
+    </Animated.View>
   )
 }
 
@@ -796,6 +894,8 @@ function Junction({ node, rect, dim }: { node: MapNode; rect: Box; dim: boolean 
 interface SelectedCardProps {
   code: string
   node: MapNode
+  /** Where it sits relative to the map's course, e.g. "Direct prerequisite of COMP 3711". */
+  relation: string
   isFocus: boolean
   completed: boolean
   starred: boolean
@@ -810,7 +910,7 @@ interface SelectedCardProps {
 
 function SelectedCard(props: SelectedCardProps) {
   const { code, node, isFocus, completed, starred, step, loop, leads, onOpen, onCentre } = props
-  const { onClose } = props
+  const { onClose, relation } = props
   const {
     themed,
     theme: { colors },
@@ -854,6 +954,10 @@ function SelectedCard(props: SelectedCardProps) {
             style={themed($dim)}
             text={course?.title ?? translate("map:notInCatalogue")}
           />
+          <View style={$relation}>
+            <Ionicons name="git-commit-outline" size={14} color={colors.tint} />
+            <Text size="xxs" weight="medium" style={{ color: colors.tint }} text={relation} />
+          </View>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -958,7 +1062,7 @@ function LegendItem({ swatch, tx }: { swatch: React.ReactNode; tx: `map:${string
 const $flex: ViewStyle = { flex: 1 }
 const $fill: ViewStyle = { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }
 const $pressed: ViewStyle = { opacity: 0.75 }
-const $dimmed: ViewStyle = { opacity: 0.22 }
+const DIMMED = 0.22
 
 const $bar: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
@@ -995,8 +1099,10 @@ const $columnLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   lineHeight: 24,
 })
 
+const $place: ViewStyle = { position: "absolute" }
+
 const $node: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
-  position: "absolute",
+  flex: 1,
   flexDirection: "row",
   borderRadius: 18,
   backgroundColor: colors.surface,
@@ -1105,7 +1211,7 @@ const $crumbLast: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: c
 const $stepText: TextStyle = { color: "#FFFFFF", fontSize: 14, lineHeight: 18 }
 
 const $junction: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  position: "absolute",
+  flex: 1,
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 999,
@@ -1162,6 +1268,20 @@ const $pathToggle: ThemedStyle<ViewStyle> = ({ colors, isDark }) => ({
 const $pathToggleOn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tint })
 
 const $keyArea: ViewStyle = { gap: 10, alignItems: "flex-start" }
+
+const $relation: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }
+
+const $tip: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  alignSelf: "center",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+  paddingHorizontal: 14,
+  paddingVertical: 9,
+  borderRadius: 18,
+  backgroundColor: colors.hero,
+})
+const $tipText: TextStyle = { color: "#FFFFFF" }
 
 const $roundButtonOn: ThemedStyle<ViewStyle> = ({ colors }) => ({ backgroundColor: colors.tint })
 
