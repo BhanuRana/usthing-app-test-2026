@@ -4,7 +4,7 @@
   "scheme": "apptechtest2627",
   "version": "1.0.0",
   "orientation": "portrait",
-  "userInterfaceStyle": "automatic",
+  "userInterfaceStyle": "light",
   "icon": "./assets/images/app-icon-all.png",
   "updates": {
     "fallbackToCacheTimeout": 0

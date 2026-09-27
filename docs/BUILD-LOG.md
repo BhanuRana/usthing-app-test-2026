@@ -99,3 +99,7 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 - Added `react-native-svg` and rebuilt the iOS dev client; added `GestureHandlerRootView` at the root (gestures outside a modal had none).
 - Found on the simulator: a tap's `maxDuration` expired while it waited to rule out a double-tap; the dot grid stopped at the map's edges; small maps opened cut off; selecting while zoomed right out stayed unreadable. All fixed.
 - Maestro flow `CourseMap` (58 steps). Full suite: 71 Jest tests, 7/7 Maestro flows on iOS. Map demo GIF and screenshot added.
+
+**16 · Light only, and a real iPhone** (D21)
+- Pinned the theme to light (JS override plus native `userInterfaceStyle`); checked with the simulator in dark mode.
+- First install on a physical iPhone 15 (iOS 26.1): a signed Release build (free Apple ID, automatic signing, team passed to `xcodebuild` rather than committed), installed with `devicectl`.

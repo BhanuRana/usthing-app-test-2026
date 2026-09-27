@@ -172,3 +172,9 @@ The department hue list swapped its plain blue for coral, so a badge never looks
 
 **Why:** The tree shows one branch at a time and the full chain is a flat list; neither shows *shape*: where branches merge, which courses are bottlenecks, where your route runs. Chains are small (median 0, 99th percentile 20 courses, largest 59 nodes with junctions), so the whole thing fits and lays out in well under a millisecond.
 **Cost:** `react-native-svg` (the standard Expo package; a native module, so the dev client was rebuilt) and a `GestureHandlerRootView` at the app root. **Considered:** Skia (smoother at huge sizes, but a heavier native dependency and unnecessary at these sizes) and a force-directed layout (organic but unstable between opens, and it hides the before/after direction that matters here).
+
+### D21 · Light theme only (2026-09-27)
+
+**Decision:** The app is always light, whatever the phone is set to: `ThemeProvider` gets `initialContext="light"` (the template's own override), and the native `userInterfaceStyle` is `light`, so the keyboard, system sheets and splash match.
+**Why:** The navy band, the gold accents and the map were designed and tuned in light mode, and every screenshot, demo and Maestro flow covers light mode. Dark mode was a second theme to keep in step with each new screen, and parts of it (the filter sheet, the Explore header) had never been checked. One polished theme beats two uneven ones.
+**Kept:** the dark palette and the `isDark` branches are still in the code, so bringing dark mode back is removing the override and checking each screen.

@@ -91,7 +91,8 @@ export function App() {
     <GestureHandlerRootView style={$root}>
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <KeyboardProvider>
-          <ThemeProvider>
+          {/* Light only (D21): the design is tuned for it, and screenshots and tests cover it. */}
+          <ThemeProvider initialContext="light">
             <AppNavigator
               linking={linking}
               initialState={initialNavigationState}

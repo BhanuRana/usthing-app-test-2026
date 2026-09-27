@@ -53,7 +53,7 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 - **Your path**: the courses still to take, in order, as a timeline ending at the course. It builds on what you've completed, follows the options you've starred, marks what you can take now, and stars the whole route in one tap ([D19](docs/DECISIONS.md#d19--your-path-2026-09-27)).
 - **My Courses**: starred and completed courses, with courses completed, credits earned and courses starred.
 
-**Polish:** a navy and gold identity after HKUST's colours ([D15](docs/DECISIONS.md#d15--navy-and-gold-theme-2026-09-25), [D17](docs/DECISIONS.md#d17--navy-header-band-2026-09-26)); colour that carries meaning (navy = tappable, gold = starred, green = met, amber = still needed); light and dark mode; VoiceOver labels on interactive elements; state that persists across launches.
+**Polish:** a navy and gold identity after HKUST's colours ([D15](docs/DECISIONS.md#d15--navy-and-gold-theme-2026-09-25), [D17](docs/DECISIONS.md#d17--navy-header-band-2026-09-26)); colour that carries meaning (navy = tappable, gold = starred, green = met, amber = still needed); a light theme whatever the phone is set to ([D21](docs/DECISIONS.md#d21--light-theme-only-2026-09-27)); VoiceOver labels on interactive elements; state that persists across launches.
 
 ### Screens
 
@@ -125,8 +125,8 @@ maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 7 en
 
 | Platform | Build | Result |
 |---|---|---|
-| iOS 26.5 simulator, iPhone 17 / 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features; **7/7 Maestro flows pass** on the current code (Debug build). Release and fresh-clone builds were verified before D16–D19. Dark mode checked on every screen except the filter sheet and the Explore header. |
-| Android 16 (API 36) emulator, Pixel 8 | Debug (dev client) and Release APK | All features, light and dark mode, hardware back button; 4/4 Maestro flows passed on the Release build, **before** the filter sheet, header band, star prompt, "Your path" and the course map ([D16–D20](docs/DECISIONS.md#d16--filters-in-a-sheet-2026-09-26)). Not re-run since; the map's `react-native-svg` needs an Android rebuild. |
+| iOS 26.5 simulator, iPhone 17 / 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features; **7/7 Maestro flows pass** on the current code (Debug build). Release and fresh-clone builds were verified before D16–D19. |
+| Android 16 (API 36) emulator, Pixel 8 | Debug (dev client) and Release APK | All features, hardware back button; 4/4 Maestro flows passed on the Release build, **before** the filter sheet, header band, star prompt, "Your path" and the course map ([D16–D20](docs/DECISIONS.md#d16--filters-in-a-sheet-2026-09-26)). Not re-run since; the map's `react-native-svg` needs an Android rebuild. |
 
 ---
 
