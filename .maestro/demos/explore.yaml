@@ -1,0 +1,41 @@
+#flow: Demo · Explore
+#intent:
+# Filter sheet (level + department), title search, a course page and its prerequisite tree.
+appId: ${MAESTRO_APP_ID}
+---
+- runFlow: { file: _pause.yaml, env: { MS: 1200 } }
+- tapOn:
+    id: 'filters-button'
+- runFlow: { file: _pause.yaml, env: { MS: 700 } }
+- tapOn: 'Undergraduate'
+- runFlow: { file: _pause.yaml, env: { MS: 500 } }
+- tapOn:
+    id: 'filter-department'
+- runFlow: { file: _pause.yaml, env: { MS: 600 } }
+- tapOn: '.*Filter departments.*'
+- inputText: 'COMP'
+- runFlow: { file: _pause.yaml, env: { MS: 600 } }
+- tapOn:
+    id: 'department-COMP'
+- runFlow: { file: _pause.yaml, env: { MS: 1200 } }
+- tapOn:
+    id: 'filters-apply'
+- runFlow: { file: _pause.yaml, env: { MS: 1000 } }
+- tapOn: '.*Search code or title.*'
+- inputText: 'algorithms'
+- hideKeyboard
+- runFlow: { file: _pause.yaml, env: { MS: 1500 } }
+- tapOn:
+    id: 'course-row-COMP 3711'
+- runFlow: { file: _pause.yaml, env: { MS: 1500 } }
+- swipe:
+    start: '50%,78%'
+    end: '50%,38%'
+    duration: 900
+- runFlow: { file: _pause.yaml, env: { MS: 700 } }
+- tapOn: 'Show prerequisites of COMP 2011'
+- runFlow: { file: _pause.yaml, env: { MS: 1500 } }
+- tapOn: 'COMP 2011, .*'
+- runFlow: { file: _pause.yaml, env: { MS: 1800 } }
+- tapOn: 'Back'
+- runFlow: { file: _pause.yaml, env: { MS: 1000 } }

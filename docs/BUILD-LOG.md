@@ -74,3 +74,21 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 - Navy/gold palettes for light and dark, `star` token, coral in place of blue among department hues.
 - Icon and splash redrawn in navy with a gold node (same graph geometry). iOS native project re-synced with `expo prebuild`.
 - README screenshots regenerated with `.maestro/screenshots.yaml` in both themes.
+
+**11 · Filters and header** (D16, D17)
+- Filter sheet with a live result count, removable filter pills, and a header filter button with a count badge.
+- `HeroHeader` navy band on Explore, My Courses and course pages; a pinned bar on course pages.
+- Tried and reverted: a gold My Courses band, a collapsing Explore header, and a floating "Explore" pill replacing the tabs (it morphed into the search field; the tabs were clearer).
+
+**12 · Star prompt** (D18)
+- `missingGroups()` with 6 unit tests; a sweep over all 4,030 courses × 4 terms found duplicate rows (LANG 3021, LANG 4030, SCIE 3500), fixed.
+- Found in testing: a "+ 0 prerequisites" label, and VoiceOver reading the star icon's glyph. Both fixed.
+- Maestro flow `StarPrerequisites` (120 steps) covering every path.
+
+**13 · Your path** (D19)
+- `planPath()` with 8 unit tests; every course planned in 7.7 ms total (`yarn bench`).
+- "Your path" card, a live timeline that updates as courses are completed or starred.
+- Maestro flow `CoursePath`. Full suite: 62 Jest tests, 6/6 Maestro flows on iOS.
+
+**14 · README media**
+- `.maestro/screenshots.yaml` regenerates the 9 screenshots; `.maestro/demos/` + `scripts/record-demo.sh` record the two demo GIFs (trimmed, 1.5x).

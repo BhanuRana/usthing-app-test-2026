@@ -1,0 +1,47 @@
+#flow: Demo · Plan
+#intent:
+# Star a course you can't take yet: the prompt offers its prerequisites; then "Your path"
+# shows the route, and shrinks when a course on it is completed.
+appId: ${MAESTRO_APP_ID}
+---
+- runFlow: { file: _pause.yaml, env: { MS: 1000 } }
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp 3711'
+- hideKeyboard
+- runFlow: { file: _pause.yaml, env: { MS: 800 } }
+- tapOn:
+    id: 'course-row-COMP 3711'
+- runFlow: { file: _pause.yaml, env: { MS: 1500 } }
+- tapOn: 'Star course'
+- runFlow: { file: _pause.yaml, env: { MS: 1800 } }
+- tapOn:
+    id: 'star-option-COMP 2012'
+- runFlow: { file: _pause.yaml, env: { MS: 900 } }
+- tapOn:
+    id: 'star-option-COMP 2011'
+- runFlow: { file: _pause.yaml, env: { MS: 1000 } }
+- tapOn:
+    id: 'star-with-prerequisites'
+- runFlow: { file: _pause.yaml, env: { MS: 1000 } }
+- scrollUntilVisible:
+    element: 'Your path'
+    direction: DOWN
+    centerElement: true
+    speed: 30
+- swipe:
+    start: '50%,62%'
+    end: '50%,44%'
+    duration: 1000
+- runFlow: { file: _pause.yaml, env: { MS: 2500 } }
+- tapOn:
+    id: 'path-course-COMP 1023'
+- runFlow: { file: _pause.yaml, env: { MS: 1200 } }
+- tapOn:
+    id: 'toggle-completed'
+- runFlow: { file: _pause.yaml, env: { MS: 1000 } }
+- tapOn: 'Back'
+- runFlow: { file: _pause.yaml, env: { MS: 2500 } }
+- tapOn: 'Back'
+- runFlow: { file: _pause.yaml, env: { MS: 600 } }
+- tapOn: 'My Courses.*'
+- runFlow: { file: _pause.yaml, env: { MS: 2200 } }

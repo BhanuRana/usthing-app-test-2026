@@ -1,33 +1,74 @@
 # HKUST Course Explorer
 
-A React Native + Expo app for browsing HKUST courses and understanding their prerequisites. Built for the USThing App Team 2026-27 Fall technical test on the provided Ignite template, using the supplied local `courses.json`. There's no backend and no network.
+A React Native + Expo app for browsing HKUST courses, understanding their prerequisites, and planning how to get to the course you want. Built for the USThing App Team 2026-27 Fall technical test on the provided Ignite template, using the supplied local `courses.json`. There's no backend and no network.
 
-<p align="center">
-  <img src="docs/screenshots/explore.png" width="130" alt="Explore: course cards with department colours and filters" />
-  <img src="docs/screenshots/search.png" width="130" alt="Search with the matched part of each code highlighted" />
-  <img src="docs/screenshots/eligibility.png" width="130" alt="Course page: prerequisite check against completed courses" />
-  <img src="docs/screenshots/prerequisites.png" width="130" alt="Expandable prerequisite tree and full chain" />
-  <img src="docs/screenshots/cycle.png" width="130" alt="A real prerequisite cycle, marked instead of recursing" />
-  <img src="docs/screenshots/my-courses.png" width="130" alt="My Courses: completed, credits earned, starred" />
-  <img src="docs/screenshots/dark.png" width="130" alt="Dark mode" />
-</p>
+<table>
+  <tr>
+    <td align="center"><img src="docs/demos/explore.gif" width="260" alt="Demo: filter sheet, title search, a course page and its prerequisite tree" /></td>
+    <td align="center"><img src="docs/demos/plan.gif" width="260" alt="Demo: starring a course offers its prerequisites; Your path shows the route and shrinks as courses are completed" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Find a course</b><br/>Filter, search by title, follow the prerequisite tree</td>
+    <td align="center"><b>Plan the route</b><br/>Star with prerequisites, then watch "Your path" shrink as you complete courses</td>
+  </tr>
+</table>
 
-**What it does**
+## What it does
 
-- **Browse & search** 4,030 courses across 4 terms and 129 departments. Search by code (`comp3711`, `COMP 3711`) or title (`operating systems`, even `systems operating`). Filter by semester, department and UG/PG. Matches are highlighted in the results, and each department has its own colour badge, so mixed lists are easy to scan.
-- **Course details**, per term (descriptions and prerequisites change between terms): credits, description, prerequisites, co-requisites, exclusions, attributes, learning outcomes. Course codes in free text are tappable links.
-- **Prerequisite explorer** *(required challenge)*:
-  - An expandable AND/OR tree: expand any prerequisite to reveal its own, as deep as the chain goes.
-  - Tap any course to open it.
-  - Cycles are marked "↻ Loops back" instead of recursing (the data has a real one, `UCMP 6030 ↔ UCMP 6040`).
-  - Courses missing from the catalogue and non-course requirements (HKDSE, IELTS…) are shown as such.
-  - Also: a **full-chain** summary by level, and **"Leads to"**, the courses that list this one as a prerequisite.
-- **My courses** *(optional features)*:
-  - Star courses.
-  - Mark courses as **completed** to see whether you meet a course's prerequisites ("Still needed: one of COMP 2711 / MATH 2343").
-  - Filter Explore to **"Unlocked for me"**: everything you can take next.
-  - A summary of courses completed, credits earned and courses starred.
-- A consistent visual language ([D14](docs/DECISIONS.md#d14--visual-design-pass-2026-09-25)): cards, navy for anything tappable, gold for stars, green for "met", amber for "still needed" ([D15](docs/DECISIONS.md#d15--navy-and-gold-theme-2026-09-25)). Light/dark mode, VoiceOver labels on interactive elements, and state that persists across launches.
+**Browse and search** 4,030 courses across 4 terms and 129 departments.
+- Search by code (`comp3711`, `COMP 3711`) or title (`operating systems`, even `systems operating`). The matched part of each result is highlighted.
+- Filter by term, level (UG/PG), department and "Unlocked for me" in a sheet that shows how many courses you'll get before you apply ([D16](docs/DECISIONS.md#d16--filters-in-a-sheet-2026-09-26)). Active filters stay visible as removable pills.
+
+**Course details**, per term (descriptions and prerequisites change between terms): credits, description, prerequisites, co-requisites, exclusions, attributes, learning outcomes. Course codes in free text are tappable links.
+
+**Prerequisite explorer** *(the required challenge)*:
+- An expandable AND/OR tree: expand any prerequisite to reveal its own, as deep as the chain goes. Tap any course to open it.
+- Cycles are marked "↻ Loops back" instead of recursing (the data has a real one, `UCMP 6030 ↔ UCMP 6040`).
+- Courses missing from the catalogue and non-course requirements (HKDSE, IELTS…) are shown as such, and the original text is always shown under the tree.
+- Also: the **full chain** by level, and **"Leads to"**, the courses that list this one as a prerequisite.
+
+**Planning** *(beyond the brief)*:
+- **Completed courses** drive an eligibility check on every course page ("Still needed: one of COMP 2711 / COMP 2711H / MATH 2343") and the "Unlocked for me" filter: everything you can take next.
+- **Starring a course you can't take yet** offers to star its missing prerequisites too, letting you pick within each "one of" group ([D18](docs/DECISIONS.md#d18--starring-a-course-you-cant-take-yet-2026-09-27)).
+- **Your path**: the courses still to take, in order, as a timeline ending at the course. It builds on what you've completed, follows the options you've starred, marks what you can take now, and stars the whole route in one tap ([D19](docs/DECISIONS.md#d19--your-path-2026-09-27)).
+- **My Courses**: starred and completed courses, with courses completed, credits earned and courses starred.
+
+**Polish:** a navy and gold identity after HKUST's colours ([D15](docs/DECISIONS.md#d15--navy-and-gold-theme-2026-09-25), [D17](docs/DECISIONS.md#d17--navy-header-band-2026-09-26)); colour that carries meaning (navy = tappable, gold = starred, green = met, amber = still needed); light and dark mode; VoiceOver labels on interactive elements; state that persists across launches.
+
+### Screens
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/explore.png" width="200" alt="Explore: the navy header, search and course cards" /></td>
+    <td><img src="docs/screenshots/filters.png" width="200" alt="Filter sheet with a live result count" /></td>
+    <td><img src="docs/screenshots/search.png" width="200" alt="Search with highlighted matches and active filter pills" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Explore</sub></td>
+    <td align="center"><sub>Filters, with a live count</sub></td>
+    <td align="center"><sub>Search highlighting and filter pills</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/course.png" width="200" alt="Course page: header, terms, and what's still needed" /></td>
+    <td><img src="docs/screenshots/prerequisites.png" width="200" alt="The prerequisite tree, expanded two levels" /></td>
+    <td><img src="docs/screenshots/cycle.png" width="200" alt="A real prerequisite cycle, marked instead of recursing" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Course page and eligibility</sub></td>
+    <td align="center"><sub>Expandable prerequisite tree</sub></td>
+    <td align="center"><sub>A real cycle, handled</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/star-prompt.png" width="200" alt="Starring a course you can't take yet offers its prerequisites" /></td>
+    <td><img src="docs/screenshots/path.png" width="200" alt="Your path: the courses to take, in order" /></td>
+    <td><img src="docs/screenshots/my-courses.png" width="200" alt="My Courses: completed, credits earned, starred" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Star with prerequisites</sub></td>
+    <td align="center"><sub>Your path</sub></td>
+    <td align="center"><sub>My Courses</sub></td>
+  </tr>
+</table>
 
 ---
 
@@ -55,19 +96,19 @@ yarn data         # courses.json -> app/data/generated/ (~2 s)
 **Checks**
 
 ```bash
-yarn test         # 48 Jest tests: parser, traversal, eligibility, search on the real data, highlighting
+yarn test         # 62 Jest tests: parser, traversal, eligibility, path planning, search on the real data
 yarn compile      # TypeScript
 yarn lint:check
 yarn bench        # data-layer micro-benchmarks
-maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 4 end-to-end flows (needs Maestro + a running app)
+maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 6 end-to-end flows (needs Maestro + a running app)
 ```
 
 ## Platforms tested
 
 | Platform | Build | Result |
 |---|---|---|
-| iOS 26.5 simulator, iPhone 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features, light and dark mode; 4/4 Maestro E2E flows pass |
-| Android 16 (API 36) emulator, Pixel 8 | Debug (dev client) and Release APK | All features, light and dark mode, hardware back button; 4/4 Maestro E2E flows pass on the Release build |
+| iOS 26.5 simulator, iPhone 17 / 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features; **6/6 Maestro flows pass** on the current code (Debug build). Release and fresh-clone builds were verified before D16–D19. Dark mode checked on every screen except the filter sheet and the Explore header. |
+| Android 16 (API 36) emulator, Pixel 8 | Debug (dev client) and Release APK | All features, light and dark mode, hardware back button; 4/4 Maestro flows passed on the Release build, **before** the filter sheet, header band, star prompt and "Your path" ([D16–D19](docs/DECISIONS.md#d16--filters-in-a-sheet-2026-09-26)). Not re-run since. |
 
 ---
 
@@ -80,10 +121,12 @@ app/data/
   catalog.ts                 loading, lookup, search/filter, "unlocked" query
   prereq/parse.ts            prerequisite text -> AND/OR tree
   prereq/traverse.ts         per-term lookup, cycle checks, full chain (BFS)
-  prereq/evaluate.ts         tree vs. completed courses -> met / unmet / unknown
+  prereq/evaluate.ts         tree vs. completed courses -> met / unmet / unknown; what's missing
+  prereq/plan.ts             "Your path": one route to a course, in steps
   generated/                 index.json, prereqs.json, details/<DEPT>.json (committed)
 app/screens/                 ExploreScreen, CourseDetailScreen, MyCoursesScreen
-app/components/course/       CourseRow, Chip, DepartmentPicker, PrereqTree, LinkedCodesText
+app/components/course/       CourseRow, Chip, HeroHeader, FilterSheet, DepartmentPicker, PrereqTree,
+                             StarPrompt, CoursePathView, LinkedCodesText
 app/utils/usePreferences.ts  starred / completed / selected term (MMKV)
 app/navigators/              stack (Tabs → CourseDetail) + bottom tabs (Explore, My Courses)
 ```
@@ -92,7 +135,7 @@ app/navigators/              stack (Tabs → CourseDetail) + bottom tabs (Explor
 - **Navigation:** a native stack on top of two tabs. Course pages are *pushed*, so following a prerequisite chain builds a back stack you can retrace.
 - **State management:**
   - The catalogue is static and synchronous, so there's no server state to manage. It lives in module-level caches in `catalog.ts`.
-  - UI state (search text, department/career filters) is local component state.
+  - UI state (search text, filters, the filter sheet's draft) is local component state.
   - The three persisted preferences (starred, completed, selected term) use `react-native-mmkv` hooks, the same mechanism the template uses for its theme. They subscribe to their key, so every screen stays in sync without a context provider or a state library.
   - The rationale is in [D7](docs/DECISIONS.md#d7--state-component-state--mmkv-hooks-no-state-library-2026-09-24).
 - **Built on the template:** its `Screen`, `Text`, `TextField`, `Header`, `EmptyState`, themes and typed i18n (`tx` keys, English only). The Ignite demo screens, auth flow and API client were removed.
@@ -110,7 +153,7 @@ app/navigators/              stack (Tabs → CourseDetail) + bottom tabs (Explor
 - **Per-term versions.** The same code's content changes between terms: the prerequisites of 117 codes, the descriptions of 107, and the titles of 58. Each course stores a list of *versions*, and terms with identical content collapse into one version. The detail screen shows the version for the semester you're browsing, and falls back to the newest one if the course isn't offered then.
 - **Lazy details.** Metro can't `require()` a computed path, so the build script also generates `details/index.ts`, a static map of `DEPT: () => require("./DEPT.json")`. With `inlineRequires` and Hermes bytecode, a department's module runs only the first time it's opened.
 - **Search** is a linear scan over lower-cased keys computed once, ranked as: exact code › code prefix › title prefix › title word › title substring › all query words in any order. Codes match regardless of case and spacing. The search input updates immediately, and the list filters on a `useDeferredValue` copy so typing never blocks.
-- **Filters** (term, department, UG/PG, "Unlocked for me") are applied in the same pass. The department picker shows live counts under the other active filters, so you can see a dead end before picking it.
+- **Filters** (term, department, UG/PG, "Unlocked for me") are applied in the same pass. The filter sheet runs the same search on its draft to show "Show N courses" before you apply, and the department picker shows live counts under the other filters, so you can see a dead end before picking it.
 - **Lists** are `FlatList`s with fixed-height, memoised rows and `getItemLayout`, so ~4,000 rows are never measured. Titles are one line and font scaling is capped so rows always fit.
 
 ## How prerequisite traversal works
@@ -138,6 +181,14 @@ app/navigators/              stack (Tabs → CourseDetail) + bottom tabs (Explor
 
 It only evaluates a course's *direct* prerequisites (having completed a course is a fact), so it doesn't recurse across courses and can't loop. "Unlocked for me" runs it for all 4,030 courses in under a millisecond.
 
+**6. Missing prerequisites as choices** (`missingGroups()` in `evaluate.ts`, used by the star prompt). The unmet part of a tree becomes *required* courses and *"one of"* groups, where each option is a list of courses taken together (`one of COMP 2011 / (COMP 1021 + COMP 1022P)`). Free-text alternatives make a group unverifiable, so it's left out; courses the data names twice (LANG 3021 lists LANG 2010 "for DSCT only" and "for all others") are listed once.
+
+**7. Your path** (`prereq/plan.ts`). Picks one concrete route and orders it:
+- A completed course is met; a "one of" group that's already met needs nothing more.
+- Otherwise a group takes an option containing a **starred** course (your own choice), then the option needing the **fewest courses in total** (its own prerequisites included, memoised), then the first listed. Free-text alternatives are passed over when a course option exists.
+- Walking from the target records each chosen course's own chosen prerequisites, with the current path as a stack so loops are cut (and noted) instead of followed.
+- Each course's step is one more than its latest prerequisite's (a longest-path layering of the resulting DAG), so step 1 is "can take now" and the number of steps is the shortest possible sequence of terms.
+
 ## Performance
 
 `yarn bench` on an M1 Pro (Node). Hermes on a phone is slower, but even 10× these numbers stays well under a 16 ms frame.
@@ -148,29 +199,40 @@ It only evaluates a course's *direct* prerequisites (having completed a course i
 | Parse `index.json` (what we do at startup) | 1.7 ms |
 | Search "comp" / "operating systems" over all courses | 0.4 / 0.5 ms |
 | Full prerequisite chain of DSAA 3072 (9 levels) | 0.02 ms |
-| Evaluate all 4,030 courses for "Unlocked for me" | 0.4 ms |
+| Evaluate all 4,030 courses for "Unlocked for me" | 0.3 ms |
+| "Your path" to CENG 5840 (the largest: 11 courses, 4 steps) | 0.02 ms |
+| "Your path" for all 4,030 courses | 7.7 ms |
 
 The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded detail chunks ([D9](docs/DECISIONS.md#d9--bundle-size-vs-startup-2026-09-24)).
 
 ## Testing
 
-- **Jest (48 tests):**
+- **Jest (62 tests):**
   - the parser on real-world strings (brackets, precedence, notes, `or above`, enumerators, unbalanced parentheses);
   - traversal (per-term lookup, cycles, self-reference, shared subtrees);
-  - eligibility (three-valued logic, "still needed");
-  - search/filter/unlocked on the **real generated data**;
-  - search-match highlighting (any spacing/case for codes, any word order for titles);
+  - eligibility (three-valued logic, "still needed") and missing-prerequisite groups (nesting, duplicates, free text);
+  - path planning (cheapest option, completed courses, starred options, shared prerequisites, ordering, loops);
+  - search/filter/unlocked on the **real generated data**, and search-match highlighting;
   - plus the template's i18n key check.
-- **Maestro (4 flows in `.maestro/flows`):** search → open → follow a prerequisite → back; the UCMP cycle; department + career filter → star → My Courses; complete two courses → eligibility changes → "Unlocked for me". `.maestro/screenshots.yaml` regenerates the screenshots above.
+- **Data sweeps:** the star prompt's groups and "Your path" were run for every course in every term (15,178 cases): no crashes, no duplicate rows, no course on its own path.
+- **Maestro (6 flows in `.maestro/flows`):**
+  - search → open → follow a prerequisite → back;
+  - the UCMP cycle;
+  - filter sheet (department + level) → star → My Courses;
+  - complete two courses → eligibility changes → "Unlocked for me";
+  - the star prompt: defaults, changing picks, cancelling, "star only", already-starred, required, taken-together and not-in-catalogue courses, and every case with no prompt (120 steps);
+  - "Your path": contents, completing a course from the path, a starred option steering the route, starring the whole path, a loop, and no card when there's nothing to plan.
+- **Media:** `.maestro/screenshots.yaml` regenerates the screenshots above; `scripts/record-demo.sh explore|plan` records the demo GIFs from `.maestro/demos/` (needs ffmpeg).
 
 ## Assumptions and limitations
 
 - **Prerequisite parsing is best-effort**, as the brief allows. The rules cover the observed grammar, and anything unusual degrades to readable text rather than being dropped. The raw string is always shown next to the tree.
 - **Deeper tree levels use each course's newest version.** Only the course you're viewing follows the selected term, because "the prerequisites of a prerequisite in a given term" isn't well defined.
 - **"Leads to" spans all terms.** A course that listed this one as a prerequisite in any term is included.
+- **"Your path" plans by prerequisites only.** It shows which seasons each course runs in, but doesn't schedule courses into specific terms, balance credit loads, or account for co-requisites and exclusions. Where the data offers a choice, it takes your starred option or the shortest route; star a different option to change it.
 - **Eligibility only checks course prerequisites.** Co-requisites, exclusions, grade conditions ("Grade A- or above") and non-course requirements aren't enforced. Grade notes are shown, and text requirements make the result "can't verify" rather than a guess.
 - **Section data (quota, enrolment, waitlist) isn't shown**, per the 2026-09-24 brief update. The dataset doesn't include it.
-- **Android was tested on an emulator only**, not a physical device. The same goes for iOS (simulator only).
+- **Tested on simulators and emulators only**, not physical devices. Android hasn't been re-run since D16–D19 (see [Platforms tested](#platforms-tested)).
 
 ## Documentation
 

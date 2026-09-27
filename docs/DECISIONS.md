@@ -130,3 +130,32 @@ I drove every screen with Maestro in light and dark mode, and fixed:
 
 The department hue list swapped its plain blue for coral, so a badge never looks like a link. The app icon and splash use the same navy, and the graph's top node is gold.
 **Why:** The starter palette read as a template. Navy and gold fit a HKUST course explorer and give the app a recognisable identity. Only token values changed; the components already read semantic tokens, so no component code was touched.
+
+### D16 · Filters in a sheet (2026-09-26)
+
+**Decision:** The two rows of filter chips on Explore became one button in the header that opens a sheet dropping from the top: term chips, a level segmented control, the department picker and "Unlocked for me". Changes are a draft until "Show N courses", which counts the results live and says "No matching courses" instead of applying a dead end. Tapping outside, swiping up or the back gesture discards the draft. Active filters show as removable pills under the search field, and the button carries a count badge.
+**Why:** The chip rows took two lines of every Explore screen for something used occasionally, and the department picker already lived one tap away. A sheet with a live count lets people try combinations without losing their list, and the pills keep what's applied visible.
+**Considered:** a bottom sheet (further from the button that opens it) and applying each change immediately (every tap would re-filter and scroll the list behind the sheet).
+
+### D17 · Navy header band (2026-09-26)
+
+**Decision:** A shared `HeroHeader`: a navy band with rounded bottom corners, a gold eyebrow, and faint rings with a gold node after the app icon. Explore puts the title, count, filter button and search on it; My Courses puts its stats tiles on it; a course page puts the code, title, info pills and "Mark as completed" on it, under a pinned navy bar where Back and Star stay reachable and the code fades in once the big one scrolls away.
+**Why:** It gives each screen a clear top and brings the D15 identity into the layout, not just the accent colour.
+**Tried and dropped:** a gold band for My Courses (too warm next to the navy), and a header that folds to a compact bar as Explore scrolls (the motion distracted more than the space helped).
+
+### D18 · Starring a course you can't take yet (2026-09-27)
+
+**Decision:** Starring a course whose prerequisites aren't met opens a prompt listing what's missing and offers to star those courses too. Required courses are checkboxes; "one of" groups are pick-one, preset to their first option; courses to be taken together are one option; already-starred and not-in-catalogue courses are shown but can't be picked. No prompt when unstarring, when there's nothing missing, when the requirement can't be verified (a free-text alternative such as an HKDSE result), or for a completed course.
+**Why:** A star usually means "I want to take this", and the next question is "what do I need first?". The prompt answers it at that moment and turns the answer into stars, which the path (D19) then follows.
+**Data:** `missingGroups()` turns a tree into these groups. A sweep over every course found three (LANG 3021, LANG 4030, SCIE 3500) that name the same course twice with different notes, so groups are de-duplicated.
+
+### D19 · "Your path" (2026-09-27)
+
+**Decision:** A course you can't take yet gets a "Your path" card: the courses still to take, as numbered steps, ending at the course. `planPath()` picks one concrete route:
+- completed courses count, and a "one of" group already met needs nothing more;
+- otherwise a group takes an option with a starred course first (the user's own choice, e.g. from D18), then the option needing the fewest courses in total, then the first listed;
+- each course sits one step after its latest prerequisite, so step 1 is "can take now" and the number of steps is the shortest possible sequence of terms;
+- free-text requirements flag their course ("+ other requirements") rather than being listed, since many are parsing fragments; loops are cut and noted.
+
+**Why:** The tree and the full chain show *everything* (DSAA 3072's chain is 22 courses); a student needs *a* route (3 courses). It reuses the parsed trees, stars and completed courses, costs 0.02 ms, and one tap stars the whole route.
+**Limits:** it plans by prerequisites only; it doesn't check which term a course runs in beyond showing its seasons, or credit loads, or co-requisites.

@@ -1,17 +1,40 @@
 #flow: Screenshots
 #intent:
-# Regenerates the README screenshots (not a test; kept out of flows/). Run it once in light
-# mode and once in dark mode, then copy the PNGs from Maestro's output into docs/screenshots:
+# Regenerates the README screenshots (not a test; kept out of flows/), in light mode with a
+# clean status bar:
+#   xcrun simctl ui booted appearance light
+#   xcrun simctl status_bar booted override --time 9:41 --batteryState charged --batteryLevel 100
 #   maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/screenshots.yaml
+# then copy the PNGs from Maestro's output into docs/screenshots.
 appId: ${MAESTRO_APP_ID}
 onFlowStart:
   - runFlow: shared/_OnFlowStart.yaml
 ---
+- waitForAnimationToEnd
 - takeScreenshot: explore
-- tapOn: '.*Search code or title.*'
-- inputText: 'comp 2011'
+
+# Filter sheet, mid-edit: all terms, undergraduate, COMP.
 - tapOn:
-    id: 'course-row-COMP 2011'
+    id: 'filters-button'
+- tapOn: 'All terms'
+- tapOn: 'Undergraduate'
+- tapOn:
+    id: 'filter-department'
+- tapOn: '.*Filter departments.*'
+- inputText: 'COMP'
+- tapOn:
+    id: 'department-COMP'
+- waitForAnimationToEnd
+- takeScreenshot: filters
+- tapOn:
+    id: 'filters-apply'
+- waitForAnimationToEnd
+
+# Complete COMP 1021 (so eligibility is checked), then search with highlighting.
+- tapOn: '.*Search code or title.*'
+- inputText: 'comp 1021'
+- tapOn:
+    id: 'course-row-COMP 1021'
 - tapOn:
     id: 'toggle-completed'
 - tapOn: 'Back'
@@ -20,13 +43,38 @@ onFlowStart:
 - inputText: 'comp37'
 - hideKeyboard
 - takeScreenshot: search
+
+# Course page, prerequisite tree, star prompt, path.
 - tapOn:
     id: 'course-row-COMP 3711'
-- takeScreenshot: eligibility
+- waitForAnimationToEnd
+- takeScreenshot: course
 - tapOn: 'Show prerequisites of COMP 2011'
-- scroll
+- swipe:
+    start: '50%,75%'
+    end: '50%,40%'
+    duration: 900
+- waitForAnimationToEnd
 - takeScreenshot: prerequisites
+- tapOn: 'Star course'
+- waitForAnimationToEnd
+- takeScreenshot: star-prompt
+- tapOn:
+    id: 'star-with-prerequisites'
+- scrollUntilVisible:
+    element: 'Your path'
+    direction: DOWN
+    centerElement: true
+- swipe:
+    start: '50%,62%'
+    end: '50%,32%'
+    duration: 1200
+- waitForAnimationToEnd
+- takeScreenshot: path
 - tapOn: 'Back'
+
+# A real prerequisite cycle.
+- tapOn: 'Clear filters'
 - tapOn: '.*Search code or title.*'
 - eraseText: 20
 - inputText: 'ucmp6030'
@@ -34,7 +82,14 @@ onFlowStart:
 - tapOn:
     id: 'course-row-UCMP 6030'
 - tapOn: 'Show prerequisites of UCMP 6040'
+- scrollUntilVisible:
+    element: '.*Loops back.*'
+    direction: DOWN
+    centerElement: true
 - takeScreenshot: cycle
 - tapOn: 'Back'
+
+# My Courses with the starred path and a completed course.
 - tapOn: 'My Courses.*'
+- waitForAnimationToEnd
 - takeScreenshot: my-courses

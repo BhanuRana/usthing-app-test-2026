@@ -1,0 +1,9 @@
+#flow: Demo setup
+#intent:
+# Fresh app state before recording a demo (the demo flows themselves don't relaunch, so the
+# recording starts on a settled screen). See docs/README section "Demos" / scripts/record-demo.sh.
+appId: ${MAESTRO_APP_ID}
+onFlowStart:
+  - runFlow: ../shared/_OnFlowStart.yaml
+---
+- waitForAnimationToEnd
