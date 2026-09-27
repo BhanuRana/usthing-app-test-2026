@@ -46,10 +46,11 @@ export function MyCoursesScreen({ navigation }: TabScreenProps<"MyCourses">) {
     [starred, completed],
   )
   const isEmpty = sections.every((s) => s.data.length === 0)
+  // Same order as the lists below: what you're aiming for, then what you've done.
   const stats = [
+    { key: "starred", value: String(sections[0].data.length), label: "myCourses:statStarred" },
     { key: "completed", value: String(sections[1].data.length), label: "myCourses:statCompleted" },
     { key: "credits", value: creditsEarned(sections[1].data), label: "myCourses:statCredits" },
-    { key: "starred", value: String(sections[0].data.length), label: "myCourses:statStarred" },
   ] as const
 
   const openCourse = useCallback(

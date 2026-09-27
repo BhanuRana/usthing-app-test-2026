@@ -51,7 +51,7 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 - **Completed courses** drive an eligibility check on every course page ("Still needed: one of COMP 2711 / COMP 2711H / MATH 2343") and the "Unlocked for me" filter: everything you can take next.
 - **Starring a course you can't take yet** offers to star its missing prerequisites too, letting you pick within each "one of" group ([D18](docs/DECISIONS.md#d18--starring-a-course-you-cant-take-yet-2026-09-27)).
 - **Your path**: the courses still to take, in order, as a timeline ending at the course. It builds on what you've completed, follows the options you've starred, marks what you can take now, and stars the whole route in one tap ([D19](docs/DECISIONS.md#d19--your-path-2026-09-27)).
-- **My Courses**: starred and completed courses, with courses completed, credits earned and courses starred.
+- **My Courses**: starred and completed courses, with counts of each and credits earned.
 
 **Polish:** a navy and gold identity after HKUST's colours ([D15](docs/DECISIONS.md#d15--navy-and-gold-theme-2026-09-25), [D17](docs/DECISIONS.md#d17--navy-header-band-2026-09-26)); colour that carries meaning (navy = tappable, gold = starred, green = met, amber = still needed); a light theme whatever the phone is set to ([D21](docs/DECISIONS.md#d21--light-theme-only-2026-09-27)); VoiceOver labels on interactive elements; state that persists across launches.
 
@@ -77,7 +77,7 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
     <td><img src="docs/screenshots/cycle.png" width="150" alt="A real prerequisite cycle, marked instead of recursing" /></td>
     <td><img src="docs/screenshots/star-prompt.png" width="150" alt="Starring a course you can't take yet offers its prerequisites" /></td>
     <td><img src="docs/screenshots/path.png" width="150" alt="Your path: the courses to take, in order" /></td>
-    <td><img src="docs/screenshots/my-courses.png" width="150" alt="My Courses: completed, credits earned, starred" /></td>
+    <td><img src="docs/screenshots/my-courses.png" width="150" alt="My Courses: starred, completed, credits earned" /></td>
   </tr>
   <tr>
     <td align="center"><sub>Course map</sub></td>
