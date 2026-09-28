@@ -30,7 +30,7 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 | Optional features | Starring, completed courses and eligibility, "Unlocked for me", My Courses stats | [`evaluate.ts`](app/data/prereq/evaluate.ts) · `CompletionUnlocks` flow |
 | Beyond the brief | Star with prerequisites; "Your path", a planned route to any course | [`plan.ts`](app/data/prereq/plan.ts) · `StarPrerequisites`, `CoursePath` flows |
 | Documentation | Setup, architecture, data processing, traversal, assumptions; every decision and the build log | This README · [DECISIONS](docs/DECISIONS.md) · [BUILD-LOG](docs/BUILD-LOG.md) |
-| Quality | 78 Jest tests, 7 Maestro flows, data sweeps over every course and term, benchmarks | [Testing](#testing) · [Performance](#performance) |
+| Quality | 81 Jest tests, 7 Maestro flows, data sweeps over every course and term, benchmarks | [Testing](#testing) · [Performance](#performance) |
 
 ## What it does
 
@@ -114,7 +114,7 @@ yarn data         # courses.json -> app/data/generated/ (~2 s)
 **Checks**
 
 ```bash
-yarn test         # 78 Jest tests: parser, traversal, eligibility, path planning, map layout, search
+yarn test         # 81 Jest tests: parser, traversal, eligibility, path planning, map layout, search
 yarn compile      # TypeScript
 yarn lint:check
 yarn bench        # data-layer micro-benchmarks
@@ -262,7 +262,7 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 
 ## Testing
 
-- **Jest (78 tests):**
+- **Jest (81 tests):**
   - the parser on real-world strings (brackets, precedence, notes, `or above`, enumerators, unbalanced parentheses);
   - traversal (per-term lookup, cycles, self-reference, shared subtrees);
   - eligibility (three-valued logic, "still needed", course status) and missing-prerequisite groups (nesting, duplicates, free text);
