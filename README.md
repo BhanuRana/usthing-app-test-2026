@@ -30,7 +30,7 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 | Optional features | Starring, completed courses and eligibility, "Unlocked for me", My Courses stats | [`evaluate.ts`](app/data/prereq/evaluate.ts) · `CompletionUnlocks` flow |
 | Beyond the brief | Star with prerequisites; "Your path", a planned route to any course | [`plan.ts`](app/data/prereq/plan.ts) · `StarPrerequisites`, `CoursePath` flows |
 | Documentation | Setup, architecture, data processing, traversal, assumptions; every decision and the build log | This README · [DECISIONS](docs/DECISIONS.md) · [BUILD-LOG](docs/BUILD-LOG.md) |
-| Quality | 76 Jest tests, 7 Maestro flows, data sweeps over every course and term, benchmarks | [Testing](#testing) · [Performance](#performance) |
+| Quality | 78 Jest tests, 7 Maestro flows, data sweeps over every course and term, benchmarks | [Testing](#testing) · [Performance](#performance) |
 
 ## What it does
 
@@ -45,10 +45,10 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 - Cycles are marked "↻ Loops back" instead of recursing (the data has a real one, `UCMP 6030 ↔ UCMP 6040`).
 - Courses missing from the catalogue and non-course requirements (HKDSE, IELTS…) are shown as such, and the original text is always shown under the tree.
 - Also: the **full chain** by level, and **"Leads to"**, the courses that list this one as a prerequisite.
-- **Course map** ([D20](docs/DECISIONS.md#d20--prerequisite-map-2026-09-27)): the whole chain and what the course leads to as a graph you can pan and pinch-zoom, with arrows showing what feeds what. "One of" groups meet at junctions ("ONE OF 3"), loops are dashed, completed and starred courses stand out, and your path is drawn through it. Tap a course to light up everything it needs and everything it feeds. Tap a course on the "leads to" side and it opens a new column with what *it* leads to, one branch at a time, with a breadcrumb back ([D22](docs/DECISIONS.md#d22--exploring-forward-on-the-map-2026-09-27)); or re-centre the map on any course.
+- **Course map** ([D20](docs/DECISIONS.md#d20--prerequisite-map-2026-09-27)): the whole chain and what the course leads to as a graph you can pan and pinch-zoom, with arrows showing what feeds what. "One of" groups meet at junctions ("ONE OF 3"), loops are dashed, completed and starred courses stand out, and your path is drawn through it. Once you've marked courses completed, every course says whether you can take it (**CAN TAKE**, **NEEDS 2**, or **?** when it can't be checked) and met requirements turn green, so a chain shows at a glance how far along you are ([D23](docs/DECISIONS.md#d23--what-you-can-take-on-the-map-and-completing-with-prerequisites-2026-09-28)). Tap a course to light up everything it needs and everything it feeds, with a card that says where it sits ("Direct prerequisite of COMP 3711"), whether you can take it, and a line of its description. Tap a course on the "leads to" side and it opens a new column with what *it* leads to, one branch at a time, with a breadcrumb back ([D22](docs/DECISIONS.md#d22--exploring-forward-on-the-map-2026-09-27)); or re-centre the map on any course.
 
 **Planning** *(beyond the brief)*:
-- **Completed courses** drive an eligibility check on every course page ("Still needed: one of COMP 2711 / COMP 2711H / MATH 2343") and the "Unlocked for me" filter: everything you can take next.
+- **Completed courses** drive an eligibility check on every course page ("Still needed: one of COMP 2711 / COMP 2711H / MATH 2343"), the statuses on the map and the "Unlocked for me" filter: everything you can take next. Marking a course completed whose prerequisites aren't marked asks whether you did those too, so entering your history takes a few taps, not dozens.
 - **Starring a course you can't take yet** offers to star its missing prerequisites too, letting you pick within each "one of" group ([D18](docs/DECISIONS.md#d18--starring-a-course-you-cant-take-yet-2026-09-27)).
 - **Your path**: the courses still to take, in order, as a timeline ending at the course. It builds on what you've completed, follows the options you've starred, marks what you can take now, and stars the whole route in one tap ([D19](docs/DECISIONS.md#d19--your-path-2026-09-27)).
 - **My Courses**: starred and completed courses, with counts of each and credits earned.
@@ -114,7 +114,7 @@ yarn data         # courses.json -> app/data/generated/ (~2 s)
 **Checks**
 
 ```bash
-yarn test         # 76 Jest tests: parser, traversal, eligibility, path planning, map layout, search
+yarn test         # 78 Jest tests: parser, traversal, eligibility, path planning, map layout, search
 yarn compile      # TypeScript
 yarn lint:check
 yarn bench        # data-layer micro-benchmarks
@@ -171,6 +171,8 @@ app/data/
 app/screens/                 ExploreScreen, CourseDetailScreen, CourseMapScreen, MyCoursesScreen
 app/components/course/       CourseRow, Chip, HeroHeader, FilterSheet, DepartmentPicker, PrereqTree,
                              StarPrompt, CoursePathView, LinkedCodesText
+app/components/map/          the course map: MapNodes, MapCard, MapKey, MapControls, edgeGeometry,
+                             useMapViewport (pan, pinch, double-tap, tap hit-testing, framing)
 app/utils/usePreferences.ts  starred / completed / selected term (MMKV)
 app/navigators/              stack (Tabs → CourseDetail) + bottom tabs (Explore, My Courses)
 ```
@@ -260,12 +262,12 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 
 ## Testing
 
-- **Jest (76 tests):**
+- **Jest (78 tests):**
   - the parser on real-world strings (brackets, precedence, notes, `or above`, enumerators, unbalanced parentheses);
   - traversal (per-term lookup, cycles, self-reference, shared subtrees);
-  - eligibility (three-valued logic, "still needed") and missing-prerequisite groups (nesting, duplicates, free text);
+  - eligibility (three-valued logic, "still needed", course status) and missing-prerequisite groups (nesting, duplicates, free text);
   - path planning (cheapest option, completed courses, starred options, shared prerequisites, ordering, loops);
-  - map layout (columns and junctions, every edge pointing right, no overlaps, one side at a time, loops, lineage, exploring along a trail);
+  - map layout (columns and junctions, every edge pointing right, no overlaps, loops, lineage, exploring along a trail);
   - search/filter/unlocked on the **real generated data**, and search-match highlighting;
   - plus the template's i18n key check.
 - **Data sweeps:** the star prompt's groups and "Your path" were run for every course in every term (15,178 cases): no crashes, no duplicate rows, no course on its own path. The map was laid out for every course in all three modes (12,090 maps), and explored up to five columns deep from every course (4,364 more): no NaN positions, backward edges or overlapping nodes.
@@ -276,7 +278,7 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
   - complete two courses → eligibility changes → "Unlocked for me";
   - the star prompt: defaults, changing picks, cancelling, "star only", already-starred, required, taken-together and not-in-catalogue courses, and every case with no prompt (120 steps);
   - "Your path": contents, completing a course from the path, a starred option steering the route, starring the whole path, a loop, and no card when there's nothing to plan;
-  - the course map: fit, selecting (lineage and card), one side at a time, re-centring and coming back, exploring forward with the breadcrumb, opening a course from the map, the real loop, and no map when there's nothing to draw.
+  - the course map: fit, selecting (lineage and card), both sides at once, marking a course completed from the map (with its prerequisites), re-centring and coming back, exploring forward with the breadcrumb, opening a course from the map, the real loop, and no map when there's nothing to draw.
 - **Media:** `.maestro/screenshots.yaml` regenerates the screenshots above; `scripts/record-demo.sh explore|map|plan` records the demo GIFs from `.maestro/demos/` (needs ffmpeg).
 
 ## Assumptions and limitations

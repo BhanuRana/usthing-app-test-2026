@@ -185,3 +185,15 @@ The department hue list swapped its plain blue for coral, so a badge never looks
 **Why:** D20 showed only the direct "leads to" courses, and going further meant re-centring, which loses where you came from. Students think forward ("I've done COMP 2011; what does it open, and what does *that* open?"), so the map should let them walk forward and keep the route.
 **One branch at a time:** all of it at once is a hairball (MATH 1020 reaches 295 courses in three steps); one column per tap stays readable. A course already on the map (a prerequisite, the course itself, an earlier column) isn't moved or duplicated, and an edge that would point back into it is left out, so every edge still points right.
 **Implementation:** `buildCourseMap(…, { trail })` adds the columns; a trail entry that isn't in the column its position implies ends the trail, so a stale trail can't draw a broken map. When a new column grows the map up or left, the pan is shifted by the same amount before the frame is drawn, so nothing on screen jumps.
+
+### D23 · What you can take, on the map; and completing with prerequisites (2026-09-28)
+
+**Decision:**
+- **The map always shows both directions.** The Prerequisites / Both / Leads to switch is gone: with forward exploration (D22) the map reads as "before → this course → where it leads", and one-sided views only hid context.
+- **Each course says whether you can take it,** once anything is marked completed: CAN TAKE (every prerequisite met), NEEDS n (n requirements missing) or ? (what's left is free text the app can't check). Lines out of completed courses and satisfied groups turn green ("ONE OF 3 ✓"). Before anything is completed, statuses are hidden (every course would say "needs"), and the card suggests marking what you've done.
+- **The selection card gives a verdict** ("You can take this", "Still needed: …", "Completed") with Mark completed / Undo, where the course sits ("Direct prerequisite of COMP 3711", "2 steps before…", "Builds on…"), and two lines of its description.
+- **Marking a course completed whose prerequisites aren't marked** asks "Did you also complete these?", on the map and the course page, with the star prompt's picker (required courses ticked, "one of" groups pick-one). Un-completing stays one tap.
+
+**Why:** Chains are the point of the app, and "can I take it, and how far along am I?" is the question a student brings to them; the answer should be on the map, not one screen away. Completing a 3000-level course implies its prerequisites, so asking once saves entering a history course by course, and it makes the green spread down the chain as it should.
+**Implementation:** `courseStatus()` (evaluate.ts) is the one answer used everywhere; the prompt is `StarPrompt` with `kind="complete"` (different wording, icons and test IDs, same logic), so there's one picker to test.
+**Considered:** gating "completed" behind an "enrolled" state. The brief's optional list asks for "prerequisite completion", past courses would need two taps each, and "enrolled" could be mistaken for registration in an app that isn't connected to it.

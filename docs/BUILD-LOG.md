@@ -112,3 +112,12 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 **18 · Map: easier to read, smoother**
 - Reading: arrowheads on every edge; junctions say how many options they join ("ONE OF 3"); the selection card says where a course sits ("Direct prerequisite of COMP 3711", "2 steps before…", "Builds on COMP 2012"); a one-time tip on the first map; the key behind an "i" button.
 - Smoothness: new columns fade in and collapsed ones fade out; dimming animates; panning and its momentum stop while some of the map is still on screen. Fading and dimming live on separate view layers (Reanimated warns when a layout animation and an animated style both drive opacity).
+
+**19 · What you can take** (D23)
+- Map: both directions always; CAN TAKE / NEEDS n / ? on courses and green met requirements once anything is completed; a verdict and Mark completed on the card; a two-line description preview (an expandable details sheet was tried first and dropped: it covered half the map).
+- "Did you also complete these?" when marking a course completed, on the map and the course page, reusing the star prompt.
+- `courseStatus()` with tests (78 Jest); every flow that marks a course completed handles the new prompt; 7/7 Maestro flows on iOS.
+
+**20 · Map screen split up**
+- `CourseMapScreen.tsx` had grown to ~1,550 lines. Split into `app/components/map/`: `useMapViewport` (gestures, momentum clamping, origin compensation, fit/centre maths), `MapNodes`, `MapCard`, `MapKey`, `MapControls` and a pure `edgeGeometry`; the screen (670 lines) keeps the map data, selection, trail and framing decisions.
+- "Where a course sits" moved to the data layer as `relationTo()` with 3 tests (81 Jest). No behaviour change: 7/7 Maestro flows passed before and after.
