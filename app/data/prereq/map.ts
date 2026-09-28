@@ -1,9 +1,6 @@
 import type { PrereqGraph, PrereqNode } from "../types"
 import { prereqTreeFor, unlockedBy } from "./traverse"
 
-/** Which side of the focus course to draw. */
-export type MapMode = "prerequisites" | "both" | "leads"
-
 export interface MapNode {
   /** The course code, or a generated id for a junction. */
   id: string
@@ -73,9 +70,9 @@ export const MAP_SIZES = {
 export function buildCourseMap(
   graph: PrereqGraph,
   focus: string,
-  options: { mode?: MapMode; term?: number; trail?: readonly string[] } = {},
+  options: { term?: number; trail?: readonly string[] } = {},
 ): CourseMap {
-  const { mode = "both", term, trail = [] } = options
+  const { term, trail = [] } = options
   const nodes = new Map<string, Omit<MapNode, "x" | "y" | "rank">>()
   const edges: MapEdge[] = []
   const edgeKeys = new Set<string>()
@@ -96,52 +93,50 @@ export function buildCourseMap(
 
   addNode(focus, "course")
 
-  if (mode !== "leads") {
-    const expanded = new Set<string>()
-    const queue = [focus]
-    let junctions = 0
+  const visited = new Set<string>()
+  const queue = [focus]
+  let junctions = 0
 
-    // Connects `node` so that it feeds into `target`.
-    const attach = (node: PrereqNode, target: string) => {
-      switch (node.kind) {
-        case "course":
-          addNode(node.code, "course")
-          addEdge(node.code, target)
-          queue.push(node.code)
-          return
-        case "text": {
-          const owner = nodes.get(target)
-          if (owner?.kind === "course") owner.otherRequirements = true
-          return
+  // Connects `node` so that it feeds into `target`.
+  const attach = (node: PrereqNode, target: string) => {
+    switch (node.kind) {
+      case "course":
+        addNode(node.code, "course")
+        addEdge(node.code, target)
+        queue.push(node.code)
+        return
+      case "text": {
+        const owner = nodes.get(target)
+        if (owner?.kind === "course") owner.otherRequirements = true
+        return
+      }
+      case "any":
+      case "all": {
+        const parts = node.children.filter((c) => c.kind !== "text")
+        // Free text required alongside courses flags the target; free text offered as an
+        // alternative ("or an A-Level pass") doesn't add a requirement.
+        if (node.kind === "all" && node.children.length > parts.length) {
+          attach({ kind: "text", text: "" }, target)
         }
-        case "any":
-        case "all": {
-          const parts = node.children.filter((c) => c.kind !== "text")
-          // Free text required alongside courses flags the target; free text offered as an
-          // alternative ("or an A-Level pass") doesn't add a requirement.
-          if (node.kind === "all" && node.children.length > parts.length) {
-            attach({ kind: "text", text: "" }, target)
-          }
-          if (parts.length === 0) return
-          if (parts.length === 1) return attach(parts[0], target)
-          const id = `${node.kind}#${++junctions}`
-          addNode(id, node.kind)
-          addEdge(id, target)
-          parts.forEach((p) => attach(p, id))
-        }
+        if (parts.length === 0) return
+        if (parts.length === 1) return attach(parts[0], target)
+        const id = `${node.kind}#${++junctions}`
+        addNode(id, node.kind)
+        addEdge(id, target)
+        parts.forEach((p) => attach(p, id))
       }
     }
+  }
 
-    while (queue.length) {
-      const code = queue.shift()!
-      if (expanded.has(code)) continue
-      expanded.add(code)
-      const tree = prereqTreeFor(graph, code, code === focus ? term : undefined)
-      if (!tree) continue
-      // A top-level "all of" needs no junction: each part feeds the course directly.
-      if (tree.kind === "all") tree.children.forEach((c) => attach(c, code))
-      else attach(tree, code)
-    }
+  while (queue.length) {
+    const code = queue.shift()!
+    if (visited.has(code)) continue
+    visited.add(code)
+    const tree = prereqTreeFor(graph, code, code === focus ? term : undefined)
+    if (!tree) continue
+    // A top-level "all of" needs no junction: each part feeds the course directly.
+    if (tree.kind === "all") tree.children.forEach((c) => attach(c, code))
+    else attach(tree, code)
   }
 
   // Leads to, column by column along the trail. Their columns are known here; a course that
@@ -149,28 +144,26 @@ export function buildCourseMap(
   // edge that would point back into it is left out.
   const forward = new Map<string, number>()
   const expanded: string[] = []
-  if (mode !== "prerequisites") {
-    const addLeads = (from: string, column: number) => {
-      for (const code of unlockedBy(graph, from)) {
-        if (nodes.has(code)) {
-          const at = forward.get(code)
-          if (at === column || (at === undefined && from === focus)) addEdge(from, code)
-          continue
-        }
-        addNode(code, "course")
-        forward.set(code, column)
-        addEdge(from, code)
+  const addLeads = (from: string, column: number) => {
+    for (const code of unlockedBy(graph, from)) {
+      if (nodes.has(code)) {
+        const at = forward.get(code)
+        if (at === column || (at === undefined && from === focus)) addEdge(from, code)
+        continue
       }
+      addNode(code, "course")
+      forward.set(code, column)
+      addEdge(from, code)
     }
-    addLeads(focus, 1)
-    let previous = focus
-    for (const code of trail) {
-      const column = expanded.length + 1
-      if (forward.get(code) !== column || !edgeKeys.has(`${previous}>${code}`)) break
-      addLeads(code, column + 1)
-      expanded.push(code)
-      previous = code
-    }
+  }
+  addLeads(focus, 1)
+  let previous = focus
+  for (const code of trail) {
+    const column = expanded.length + 1
+    if (forward.get(code) !== column || !edgeKeys.has(`${previous}>${code}`)) break
+    addLeads(code, column + 1)
+    expanded.push(code)
+    previous = code
   }
 
   // Loops: walk prerequisites backwards from the focus; an edge into a node that is still

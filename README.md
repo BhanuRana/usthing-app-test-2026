@@ -4,6 +4,17 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 
 <table>
   <tr>
+    <td>
+      <b>Try it on Android:</b> <a href="https://github.com/BhanuRana/usthing-app-test-2026/releases/latest/download/HKUST-Courses.apk">download the APK</a> (40 MB, arm64), or scan the code with your phone.<br/>
+      It's a signed release build, not from the Play Store, so Android asks you to allow installs from your browser.<br/><br/>
+      <b>iPhone / simulator:</b> build from source, see <a href="#setup-and-running">Setup</a>.
+    </td>
+    <td align="center"><img src="docs/apk-qr.png" width="130" alt="QR code: download the Android APK" /></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
     <td align="center"><img src="docs/demos/explore.gif" width="240" alt="Demo: filter sheet, title search, a course page and its prerequisite tree" /></td>
     <td align="center"><img src="docs/demos/map.gif" width="240" alt="Demo: the prerequisite map, selecting a course to light up its lineage, zooming and re-centring" /></td>
     <td align="center"><img src="docs/demos/plan.gif" width="240" alt="Demo: starring a course offers its prerequisites; Your path shows the route and shrinks as courses are completed" /></td>
@@ -19,18 +30,30 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 
 ## At a glance
 
-| Area | Delivered | Where |
+The brief's checklist, in its own words:
+
+| Brief | Delivered | Where |
 |---|---|---|
-| Local dataset, Ignite template | `courses.json` preprocessed at build time; the template's components, theme and i18n kept | [`scripts/build-data.ts`](scripts/build-data.ts), [dataset](#how-the-dataset-is-processed-searched-and-filtered) |
-| Browse and search | 4,030 courses; code and title search, ranked, with highlighted matches | [`catalog.ts`](app/data/catalog.ts) · Explore · `SearchAndOpenCourse` flow |
-| Filters | Term, level, department, "Unlocked for me", with a live result count | [`FilterSheet.tsx`](app/components/course/FilterSheet.tsx) · `FilterAndStar` flow |
-| Course details | Per-term content: credits, description, prerequisites, co-requisites, exclusions, attributes, outcomes | Course page |
-| **Prerequisite explorer** (required challenge) | Expandable AND/OR tree, tap to open any course, full chain, "Leads to", and a zoomable map of the whole chain | [`parse.ts`](app/data/prereq/parse.ts), [`traverse.ts`](app/data/prereq/traverse.ts), [`map.ts`](app/data/prereq/map.ts) · [how it works](#how-prerequisite-traversal-works) |
-| Cycles and missing courses | Real cycle (UCMP 6030 ↔ 6040) marked, not followed, in the tree and on the map; missing courses and free text shown as such | `PrerequisiteCycle`, `CourseMap` flows · traversal and map tests |
-| Optional features | Starring, completed courses and eligibility, "Unlocked for me", My Courses stats | [`evaluate.ts`](app/data/prereq/evaluate.ts) · `CompletionUnlocks` flow |
-| Beyond the brief | Star with prerequisites; "Your path", a planned route to any course | [`plan.ts`](app/data/prereq/plan.ts) · `StarPrerequisites`, `CoursePath` flows |
-| Documentation | Setup, architecture, data processing, traversal, assumptions; every decision and the build log | This README · [DECISIONS](docs/DECISIONS.md) · [BUILD-LOG](docs/BUILD-LOG.md) |
-| Quality | 81 Jest tests, 7 Maestro flows, data sweeps over every course and term, benchmarks | [Testing](#testing) · [Performance](#performance) |
+| **Course catalogue** | 4,030 courses across 4 terms and 129 departments | Explore · [`catalog.ts`](app/data/catalog.ts) |
+| **Department / semester filters** | Term and department, plus level and "Unlocked for me", in a sheet with a live result count | [`FilterSheet.tsx`](app/components/course/FilterSheet.tsx) |
+| **Search** by code and title | Ranked; any spacing, case or word order; matches highlighted | [`catalog.ts`](app/data/catalog.ts) |
+| **Course details** | Per term: credits, description, prerequisites, co-requisites, exclusions, attributes, outcomes | Course page |
+| ~~Section information~~ | Removed by the 2026-09-24 brief update (not in the dataset) | |
+| **Local data** | No network; `courses.json` preprocessed at build time into lazily loaded chunks | [Dataset](#how-the-dataset-is-processed-searched-and-filtered) |
+| **Performance** | Every interaction under 1 ms in Node; fixed-height virtualised lists | [Performance](#performance) |
+| **Prerequisite explorer:** direct prerequisites | AND/OR tree on every course page, with the original text under it | [`parse.ts`](app/data/prereq/parse.ts) |
+| … recursively reveal deeper | Expand any prerequisite in place; the full chain; a zoomable map | [`traverse.ts`](app/data/prereq/traverse.ts), [`map.ts`](app/data/prereq/map.ts) |
+| … navigate to prerequisite courses | Tap any course in the tree, the chain or the map | |
+| … no prerequisites | "No prerequisites listed"; no map when there's nothing to draw | |
+| … repeated courses or cycles | The real cycle (UCMP 6030 ↔ 6040) is marked, never followed; shared subtrees are fine | [How it works](#how-prerequisite-traversal-works) |
+| *Optional:* favourites / persistent preferences | Stars, completed courses and the term, persisted | [`usePreferences.ts`](app/utils/usePreferences.ts) |
+| *Optional:* advanced filters | The filter sheet | |
+| *Optional:* prerequisite completion / "what this unlocks" | Completed courses, eligibility, "Unlocked for me", "Leads to", Your path | [`evaluate.ts`](app/data/prereq/evaluate.ts), [`plan.ts`](app/data/prereq/plan.ts) |
+| *Optional:* dependency graph visualization | The course map | [`app/components/map`](app/components/map) |
+| *Optional:* accessibility, polished interactions | VoiceOver labels; animated sheets, map and prompts | |
+| **README** sections | Setup, platforms, architecture, data, traversal, assumptions | This page · [DECISIONS](docs/DECISIONS.md) · [BUILD-LOG](docs/BUILD-LOG.md) |
+
+Checked by 79 Jest tests, 7 Maestro end-to-end flows on iOS and Android, and sweeps over every course and term ([Testing](#testing)).
 
 ## What it does
 
@@ -45,7 +68,11 @@ A React Native + Expo app for browsing HKUST courses, understanding their prereq
 - Cycles are marked "↻ Loops back" instead of recursing (the data has a real one, `UCMP 6030 ↔ UCMP 6040`).
 - Courses missing from the catalogue and non-course requirements (HKDSE, IELTS…) are shown as such, and the original text is always shown under the tree.
 - Also: the **full chain** by level, and **"Leads to"**, the courses that list this one as a prerequisite.
-- **Course map** ([D20](docs/DECISIONS.md#d20--prerequisite-map-2026-09-27)): the whole chain and what the course leads to as a graph you can pan and pinch-zoom, with arrows showing what feeds what. "One of" groups meet at junctions ("ONE OF 3"), loops are dashed, completed and starred courses stand out, and your path is drawn through it. Once you've marked courses completed, every course says whether you can take it (**CAN TAKE**, **NEEDS 2**, or **?** when it can't be checked) and met requirements turn green, so a chain shows at a glance how far along you are ([D23](docs/DECISIONS.md#d23--what-you-can-take-on-the-map-and-completing-with-prerequisites-2026-09-28)). Tap a course to light up everything it needs and everything it feeds, with a card that says where it sits ("Direct prerequisite of COMP 3711"), whether you can take it, and a line of its description. Tap a course on the "leads to" side and it opens a new column with what *it* leads to, one branch at a time, with a breadcrumb back ([D22](docs/DECISIONS.md#d22--exploring-forward-on-the-map-2026-09-27)); or re-centre the map on any course.
+- **Course map** ([D20](docs/DECISIONS.md#d20--prerequisite-map-2026-09-27)): the chain and what the course leads to as a graph you can pan and pinch-zoom.
+  - Arrows show what feeds what; "one of" groups meet at junctions ("ONE OF 3"); loops are dashed; your path is drawn through it.
+  - Once you've marked courses completed, each course says whether you can take it (**CAN TAKE**, **NEEDS 2**, or **?** when it can't be checked) and met requirements turn green ([D23](docs/DECISIONS.md#d23--what-you-can-take-on-the-map-and-completing-with-prerequisites-2026-09-28)).
+  - Tap a course to light up everything it needs and feeds; its card says where it sits ("Direct prerequisite of COMP 3711") and whether you can take it.
+  - Tap a course on the "leads to" side to open what *it* leads to, one branch at a time, with a breadcrumb back ([D22](docs/DECISIONS.md#d22--exploring-forward-on-the-map-2026-09-27)).
 
 **Planning** *(beyond the brief)*:
 - **Completed courses** drive an eligibility check on every course page ("Still needed: one of COMP 2711 / COMP 2711H / MATH 2343"), the statuses on the map and the "Unlocked for me" filter: everything you can take next. Marking a course completed whose prerequisites aren't marked asks whether you did those too, so entering your history takes a few taps, not dozens.
@@ -114,7 +141,7 @@ yarn data         # courses.json -> app/data/generated/ (~2 s)
 **Checks**
 
 ```bash
-yarn test         # 81 Jest tests: parser, traversal, eligibility, path planning, map layout, search
+yarn test         # 79 Jest tests: parser, traversal, eligibility, path planning, map layout, search
 yarn compile      # TypeScript
 yarn lint:check
 yarn bench        # data-layer micro-benchmarks
@@ -126,7 +153,8 @@ maestro test -e MAESTRO_APP_ID=com.usthing.apptechtest27 .maestro/flows   # 7 en
 | Platform | Build | Result |
 |---|---|---|
 | iOS 26.5 simulator, iPhone 17 / 17 Pro | Debug (dev client) and Release, including a Release build from a fresh `git clone` | All features; **7/7 Maestro flows pass** on the current code (Debug build). Release and fresh-clone builds were verified before D16–D19. |
-| Android 16 (API 36) emulator, Pixel 8 | Debug (dev client) and Release APK | All features, hardware back button; 4/4 Maestro flows passed on the Release build, **before** the filter sheet, header band, star prompt, "Your path" and the course map ([D16–D20](docs/DECISIONS.md#d16--filters-in-a-sheet-2026-09-26)). Not re-run since; the map's `react-native-svg` needs an Android rebuild. |
+| Android 16 (API 36) emulator, Pixel 8 | Release APK (the one on the [release page](https://github.com/BhanuRana/usthing-app-test-2026/releases/latest)) | All features, hardware back button; **7/7 Maestro flows pass** on the current code. |
+| iPhone 15, iOS 26 | Debug (dev client) | Used by hand throughout development: gestures, the map, VoiceOver labels. |
 
 ---
 
@@ -262,7 +290,7 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 
 ## Testing
 
-- **Jest (81 tests):**
+- **Jest (79 tests):**
   - the parser on real-world strings (brackets, precedence, notes, `or above`, enumerators, unbalanced parentheses);
   - traversal (per-term lookup, cycles, self-reference, shared subtrees);
   - eligibility (three-valued logic, "still needed", course status) and missing-prerequisite groups (nesting, duplicates, free text);
@@ -270,7 +298,7 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
   - map layout (columns and junctions, every edge pointing right, no overlaps, loops, lineage, exploring along a trail);
   - search/filter/unlocked on the **real generated data**, and search-match highlighting;
   - plus the template's i18n key check.
-- **Data sweeps:** the star prompt's groups and "Your path" were run for every course in every term (15,178 cases): no crashes, no duplicate rows, no course on its own path. The map was laid out for every course in all three modes (12,090 maps), and explored up to five columns deep from every course (4,364 more): no NaN positions, backward edges or overlapping nodes.
+- **Data sweeps:** the star prompt's groups and "Your path" were run for every course in every term (15,178 cases): no crashes, no duplicate rows, no course on its own path. The map was laid out for every course, and explored up to five columns deep from every course (4,364 maps): no NaN positions, backward edges or overlapping nodes.
 - **Maestro (7 flows in `.maestro/flows`):**
   - search → open → follow a prerequisite → back;
   - the UCMP cycle;
@@ -290,11 +318,11 @@ The production iOS bundle is 9.5 MB of Hermes bytecode, mostly the lazily loaded
 - **"Your path" plans by prerequisites only.** It shows which seasons each course runs in, but doesn't schedule courses into specific terms, balance credit loads, or account for co-requisites and exclusions. Where the data offers a choice, it takes your starred option or the shortest route; star a different option to change it.
 - **Eligibility only checks course prerequisites.** Co-requisites, exclusions, grade conditions ("Grade A- or above") and non-course requirements aren't enforced. Grade notes are shown, and text requirements make the result "can't verify" rather than a guess.
 - **Section data (quota, enrolment, waitlist) isn't shown**, per the 2026-09-24 brief update. The dataset doesn't include it.
-- **Tested on simulators and emulators only**, not physical devices. Android hasn't been re-run since D16–D20 (see [Platforms tested](#platforms-tested)).
+- **Not tested on a physical Android device.** Android ran on an emulator; the only real hardware was an iPhone 15, by hand.
 
 ## What I'd do next
 
-1. **Re-run Android, and test on physical devices.** Android last passed before D16–D20, and nothing has run on real hardware yet.
+1. **Run the flows on real devices**, Android especially, including a low-memory phone for the map.
 2. **Schedule "Your path" into real terms.** It already knows each course's seasons and the order; placing steps into upcoming terms under a credit cap would turn the route into a study plan.
 3. **Co-requisites and exclusions** in eligibility and the path. They're shown on course pages but not enforced.
 4. **Typo-tolerant search.** Search is exact-substring on normalised codes and words; "algorthms" finds nothing.

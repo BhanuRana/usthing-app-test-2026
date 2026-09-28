@@ -37,9 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     })
 
-    // You can also log error messages to an error reporting service here
-    // This is a great place to put BugSnag, Sentry, crashlytics, etc:
-    // reportCrash(error)
+    // An error reporting service (Sentry etc.) would be called here; there's no backend.
   }
 
   // Reset the error back to null

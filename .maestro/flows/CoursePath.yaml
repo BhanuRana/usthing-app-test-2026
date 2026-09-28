@@ -19,8 +19,9 @@ onFlowStart:
 - tapOn:
     id: 'course-row-DSAA 3072'
 - scrollUntilVisible:
-    element: 'Your path'
+    element: '3 courses to take first · 3 steps'
     direction: DOWN
+    centerElement: true
 - assertVisible: '3 courses to take first · 3 steps'
 - scrollUntilVisible:
     element:

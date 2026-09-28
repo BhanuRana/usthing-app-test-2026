@@ -31,6 +31,10 @@ onFlowStart:
 - takeScreenshot: completion-1-needed
 # COMP 2011 is ticked in the tree; follow the missing branch and complete it.
 - assertVisible: 'COMP 2011, .*Completed'
+- scrollUntilVisible:
+    element: 'COMP 2711, .*'
+    direction: DOWN
+    centerElement: true
 - tapOn: 'COMP 2711, .*'
 - tapOn:
     id: 'toggle-completed'

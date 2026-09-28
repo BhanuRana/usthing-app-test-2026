@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { LayoutChangeEvent, Pressable, TextStyle, View, ViewStyle } from "react-native"
+import {
+  LayoutChangeEvent,
+  PixelRatio,
+  Platform,
+  Pressable,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { GestureDetector } from "react-native-gesture-handler"
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated"
@@ -40,6 +48,12 @@ import { useCompleted, useStarred } from "@/utils/usePreferences"
 const K = 1.5
 /** Room around the nodes, in content points (also leaves space for column labels). */
 const PAD = 90
+/**
+ * Android's react-native-svg draws an SVG view into one bitmap, and Android refuses to draw a
+ * bitmap over ~100 MB: a big map (all its edges are one SVG) at a phone's density would crash.
+ * There the SVG is drawn smaller and scaled up to stay under this many pixels (~40 MB).
+ */
+const ANDROID_SVG_MAX_PIXELS = 10_000_000
 /** Below this, a fitted map is too small to read: open centred on the course instead. */
 const READABLE_ZOOM = 0.42
 /** Height kept clear at the bottom while the selection card is showing. */
@@ -57,8 +71,6 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const { completed, toggle: toggleCompleted, add: addCompleted } = useCompleted()
   const graph = getPrereqGraph()
 
-  // Always both directions: what comes before, the course, and where it leads.
-  const mode = "both"
   const [showPath, setShowPath] = useState(true)
   const [selected, setSelected] = useState<string>()
   // The key (what the colours and lines mean) stays out of the way until asked for.
@@ -75,8 +87,9 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
   const [trail, setTrail] = useState<string[]>([])
 
   const map = useMemo(
-    () => buildCourseMap(graph, code, { mode, term, trail }),
-    [graph, code, mode, term, trail],
+    // Always both directions: what comes before, the course, and where it leads.
+    () => buildCourseMap(graph, code, { term, trail }),
+    [graph, code, term, trail],
   )
   // The focus and the expanded trail, in order: the explored route through "leads to".
   const explored = useMemo(() => [code, ...map.trail], [code, map.trail])
@@ -149,6 +162,15 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
     [origin.x, origin.y],
   )
   const nodeById = useMemo(() => new Map(map.nodes.map((n) => [n.id, n])), [map])
+
+  // Edges SVG down-scaling on Android (see ANDROID_SVG_MAX_PIXELS); 1 = full resolution.
+  const svgScale =
+    Platform.OS === "android"
+      ? Math.max(
+          1,
+          Math.sqrt((content.w * content.h * PixelRatio.get() ** 2) / ANDROID_SVG_MAX_PIXELS),
+        )
+      : 1
 
   // --- Viewport and gestures ------------------------------------------------------------------
 
@@ -406,7 +428,12 @@ export function CourseMapScreen({ route, navigation }: AppStackScreenProps<"Cour
             <Animated.View
               style={[{ width: content.w, height: content.h }, $contentOrigin, $contentAnimated]}
             >
-              <Svg width={content.w} height={content.h}>
+              <Svg
+                width={content.w / svgScale}
+                height={content.h / svgScale}
+                viewBox={`0 0 ${content.w} ${content.h}`}
+                style={[$svgOrigin, { transform: [{ scale: svgScale }] }]}
+              >
                 {paths.map((p) => (
                   <G key={p.key} opacity={p.opacity}>
                     <Path
@@ -612,6 +639,8 @@ const $canvas: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.background,
   overflow: "hidden",
 })
+
+const $svgOrigin: ViewStyle = { transformOrigin: "0 0" }
 
 const $contentOrigin: ViewStyle = { position: "absolute", left: 0, top: 0, transformOrigin: "0 0" }
 

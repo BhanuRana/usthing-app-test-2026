@@ -121,3 +121,8 @@ Chronological notes on how the app was built. The reasoning behind each choice i
 **20 · Map screen split up**
 - `CourseMapScreen.tsx` had grown to ~1,550 lines. Split into `app/components/map/`: `useMapViewport` (gestures, momentum clamping, origin compensation, fit/centre maths), `MapNodes`, `MapCard`, `MapKey`, `MapControls` and a pure `edgeGeometry`; the screen (670 lines) keeps the map data, selection, trail and framing decisions.
 - "Where a course sits" moved to the data layer as `relationTo()` with 3 tests (81 Jest). No behaviour change: 7/7 Maestro flows passed before and after.
+
+**21 · Clean-up, Android, release**
+- Removed the Ignite template's unused components and utilities, the map's old mode code, and unused strings (79 Jest).
+- Android: the map crashed on open. `react-native-svg` draws an SVG view into a single bitmap, and a large map's edges at a phone's density came to ~195 MB, over Android's ~100 MB limit. On Android the edges now draw at a lower resolution and scale up, capped at 10 M pixels. Two flows scroll the element into the middle first (Android's screen is shorter). 7/7 Maestro flows on the Android Release APK.
+- A signed arm64 Release APK (40 MB) on the GitHub release, linked with a QR code at the top of the README.

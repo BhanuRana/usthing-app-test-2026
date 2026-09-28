@@ -75,13 +75,6 @@ describe("buildCourseMap", () => {
     }
   })
 
-  it("shows one side only when asked", () => {
-    const prereqs = buildCourseMap(g, "COMP 3711", { mode: "prerequisites" })
-    expect(prereqs.nodes.some((x) => x.rank > 0)).toBe(false)
-    const leads = buildCourseMap(g, "COMP 3711", { mode: "leads" })
-    expect(leads.nodes.map((x) => x.id).sort()).toEqual(["COMP 3711", "COMP 4211", "COMP 4611"])
-  })
-
   it("flags required free text, not free text offered as an alternative", () => {
     const g2 = graphOf({
       A: all(c("B"), t("Year 3 standing")),
@@ -146,12 +139,6 @@ describe("buildCourseMap with a trail", () => {
     const n = byId(map)
     expect(n.B.rank).toBe(1)
     for (const e of map.edges) expect(n[e.from].x).toBeLessThan(n[e.to].x)
-  })
-
-  it("ignores the trail when only prerequisites are shown", () => {
-    const map = buildCourseMap(chain, "B", { mode: "prerequisites", trail: ["D"] })
-    expect(map.trail).toEqual([])
-    expect(map.nodes.map((x) => x.id).sort()).toEqual(["A", "B"])
   })
 })
 

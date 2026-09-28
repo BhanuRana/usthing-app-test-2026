@@ -4,14 +4,12 @@ const en = {
     cancel: "Cancel",
     back: "Back",
     done: "Done",
-    all: "All",
   },
   errorScreen: {
     title: "Something went wrong!",
     friendlySubtitle:
       "Sorry, the app hit an unexpected error. You can reset it and carry on browsing courses.",
     reset: "RESET APP",
-    traceTitle: "Error from %{name} stack",
   },
   emptyStateComponent: {
     generic: {
@@ -32,7 +30,6 @@ const en = {
     // i18next picks count_one for 1 and falls back to `count` otherwise.
     count: "{{n}} courses",
     count_one: "{{n}} course",
-    inAllTerms: "all terms",
     noResultsHeading: "No matching courses",
     noResultsContent: "Try a different search, or clear the filters.",
     clearFilters: "Clear filters",
@@ -149,9 +146,6 @@ const en = {
     open: "View as map",
     openHint: "See how the whole chain fits together",
     title: "Course map",
-    prerequisites: "Prerequisites",
-    both: "Both",
-    leads: "Leads to",
     myPath: "My path",
     fit: "Fit the whole map",
     zoomIn: "Zoom in",
