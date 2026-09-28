@@ -297,3 +297,34 @@ export function lineage(map: CourseMap, id: string): Set<string> {
   follow(id, false)
   return out
 }
+
+/** Where a course sits on the map, relative to the course the map is about. */
+export type MapRelation =
+  | { kind: "focus" }
+  | { kind: "direct" }
+  | { kind: "before"; steps: number }
+  | { kind: "builds-on"; parent: string }
+
+/**
+ * A prerequisite is "direct" when it feeds the focus itself (or a group that does), otherwise
+ * `steps` columns before it; a course on the "leads to" side builds on the course before it
+ * in the explored route (or on the focus).
+ */
+export function relationTo(map: CourseMap, id: string): MapRelation {
+  if (id === map.focus) return { kind: "focus" }
+  const byId = new Map(map.nodes.map((n) => [n.id, n]))
+  const node = byId.get(id)
+  if (!node) return { kind: "focus" }
+  if (node.rank < 0) {
+    const feedsFocus = (to: string) =>
+      to === map.focus ||
+      (byId.get(to)?.kind !== "course" &&
+        map.edges.some((f) => f.from === to && f.to === map.focus))
+    const direct = map.edges.some((e) => e.from === id && !e.loop && feedsFocus(e.to))
+    return direct ? { kind: "direct" } : { kind: "before", steps: -node.rank }
+  }
+  const parent = map.edges.find(
+    (e) => e.to === id && !e.loop && (byId.get(e.from)?.rank ?? -1) >= 0,
+  )?.from
+  return { kind: "builds-on", parent: parent ?? map.focus }
+}

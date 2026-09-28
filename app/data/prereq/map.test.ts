@@ -1,5 +1,5 @@
 import type { PrereqGraph, PrereqNode } from "../types"
-import { buildCourseMap, lineage, MAP_SIZES } from "./map"
+import { buildCourseMap, lineage, MAP_SIZES, relationTo } from "./map"
 
 const c = (code: string): PrereqNode => ({ kind: "course", code })
 const t = (text: string): PrereqNode => ({ kind: "text", text })
@@ -164,5 +164,23 @@ describe("lineage", () => {
     expect(ids.has("COMP 4211")).toBe(true)
     expect(ids.has("COMP 2012")).toBe(false) // the other option
     expect(ids.has("COMP 2711")).toBe(false)
+  })
+})
+
+describe("relationTo", () => {
+  const map = buildCourseMap(g, "COMP 3711")
+
+  it("names direct prerequisites, including through a 'one of' group", () => {
+    expect(relationTo(map, "COMP 2711")).toEqual({ kind: "direct" })
+    expect(relationTo(map, "COMP 2011")).toEqual({ kind: "direct" }) // via the junction
+  })
+
+  it("counts columns back for deeper prerequisites", () => {
+    expect(relationTo(map, "COMP 1021")).toEqual({ kind: "before", steps: 2 })
+  })
+
+  it("says what a leads-to course builds on, and recognises the focus", () => {
+    expect(relationTo(map, "COMP 4211")).toEqual({ kind: "builds-on", parent: "COMP 3711" })
+    expect(relationTo(map, "COMP 3711")).toEqual({ kind: "focus" })
   })
 })
